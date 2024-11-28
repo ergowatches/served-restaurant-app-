@@ -14,7 +14,7 @@ function App() {
   return (
     <ThemeProvider>
       <LanguageProvider>
-        <Router>
+        <Router basename="/restaurant-ordering">
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<TableInput />} />
@@ -24,7 +24,7 @@ function App() {
             <Route path="/faq" element={<FAQ />} />
             <Route path="/allergens/:tableNumber" element={<AllergenInfo />} />
             <Route path="/games/:tableNumber" element={<ChoicePage />} />
-
+            
             {/* Admin Routes */}
             <Route path="/dashboard-login" element={<DashboardLogin />} />
             <Route path="/dashboard" element={<Dashboard />} />
