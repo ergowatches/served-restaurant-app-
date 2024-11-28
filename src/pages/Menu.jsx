@@ -5,7 +5,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useTheme } from '../contexts/ThemeContext';
 import EnhancedCategoryNav from '../components/EnhancedCategoryNav';
 import EnhancedMenuItem from '../components/EnhancedMenuItem';
-import QuickFilters from '../components/QuickFilters';
+import AllergenFilter from '../components/AllergenFilter';
 import EnhancedFloatingCart from '../components/EnhancedFloatingCart';
 import EnhancedCartDrawer from '../components/EnhancedCartDrawer';
 import { menuCategories, allergenTypes } from '../data/menuData';
@@ -19,10 +19,6 @@ export default function Menu() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedAllergens, setSelectedAllergens] = useState([]);
   const [showWelcome, setShowWelcome] = useState(true);
-  const [quickFilterOpen, setQuickFilterOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [favorites, setFavorites] = useState([]);
   const { t, language, setLanguage } = useLanguage();
   const { theme } = useTheme();
 
@@ -30,10 +26,6 @@ export default function Menu() {
   useEffect(() => {
     const handleScroll = () => {
       setShowWelcome(window.scrollY <= 50);
-      if (window.scrollY > 100) {
-        setQuickFilterOpen(false);
-        setSearchOpen(false);
-      }
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -48,29 +40,27 @@ export default function Menu() {
     { id: 'desserts', name: t('categories.desserts') }
   ];
 
-  // Filter menu items based on active filters
+  const toggleAllergen = (allergenId) => {
+    setSelectedAllergens(current =>
+      current.includes(allergenId)
+        ? current.filter(id => id !== allergenId)
+        : [...current, allergenId]
+    );
+  };
+
+  // Filter menu items
   const filteredItems = menuCategories
     .filter(category => activeCategory === 'all' || category.id === activeCategory)
-    .flatMap(category => category.items)
-    .filter(item => {
-      if (searchQuery) {
-        const searchLower = searchQuery.toLowerCase();
-        return (
-          item.name[language].toLowerCase().includes(searchLower) ||
-          item.description[language].toLowerCase().includes(searchLower)
-        );
-      }
-      return true;
-    });
+    .flatMap(category => category.items);
 
   // Cart functions
   const addToCart = (item) => {
-    navigator.vibrate && navigator.vibrate(50); 
+    navigator.vibrate && navigator.vibrate(50);
     setCart(prevCart => {
       const processedItem = {
         ...item,
-        name: item.name[language],       // Save the language-specific name
-        description: item.description[language], // Save the language-specific description
+        name: item.name[language],
+        description: item.description[language],
         quantity: item.quantity
       };
       
@@ -85,6 +75,7 @@ export default function Menu() {
       return [...prevCart, processedItem];
     });
   };
+
   const removeFromCart = (itemId) => {
     setCart(prevCart => prevCart.filter(item => item.id !== itemId));
   };
@@ -103,15 +94,6 @@ export default function Menu() {
 
   const calculateTotal = () => {
     return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2);
-  };
-
-  const toggleFavorite = (itemId) => {
-    setFavorites(prev => 
-      prev.includes(itemId)
-        ? prev.filter(id => id !== itemId)
-        : [...prev, itemId]
-    );
-    navigator.vibrate && navigator.vibrate([50, 50]); // Double vibration for favorite
   };
 
   return (
@@ -161,16 +143,10 @@ export default function Menu() {
         onCategoryChange={setActiveCategory}
       />
 
-      {/* Quick Filters & Search */}
-      <QuickFilters
-        isOpen={quickFilterOpen}
-        onToggle={setQuickFilterOpen}
+      {/* Allergen Filter */}
+      <AllergenFilter
         selectedAllergens={selectedAllergens}
-        onAllergenChange={setSelectedAllergens}
-        searchOpen={searchOpen}
-        onSearchToggle={setSearchOpen}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
+        onAllergenToggle={toggleAllergen}
       />
 
       {/* Menu Items Grid */}
@@ -181,8 +157,6 @@ export default function Menu() {
               <EnhancedMenuItem
                 key={item.id}
                 item={item}
-                isFavorite={favorites.includes(item.id)}
-                onFavoriteToggle={() => toggleFavorite(item.id)}
                 onAddToCart={addToCart}
                 hasAllergenWarning={selectedAllergens.some(allergen => 
                   item.allergens.includes(allergen)

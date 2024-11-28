@@ -3,7 +3,7 @@ import { allergenTypes } from '../data/menuData'
 
 export default function AllergenFilter({ selectedAllergens, onAllergenToggle }) {
   const { language } = useLanguage()
-
+  
   return (
     <div className="bg-white shadow-sm border-t border-gray-100">
       <div className="max-w-7xl mx-auto px-4 py-4">

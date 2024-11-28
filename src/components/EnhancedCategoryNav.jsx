@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
 import { useTheme } from '../contexts/ThemeContext';
-import { useRef, useEffect, useState } from 'react';
 
 const CategoryIcon = ({ category, isActive }) => {
   const icons = {
@@ -39,42 +38,11 @@ const CategoryIcon = ({ category, isActive }) => {
 
 const EnhancedCategoryNav = ({ categories, activeCategory, onCategoryChange }) => {
   const { theme } = useTheme();
-  const [scrollPosition, setScrollPosition] = useState(0);
-  const scrollRef = useRef(null);
-
-  // Handle horizontal scroll indicators
-  const updateScrollPosition = () => {
-    if (scrollRef.current) {
-      const position = scrollRef.current.scrollLeft / 
-        (scrollRef.current.scrollWidth - scrollRef.current.clientWidth);
-      setScrollPosition(position);
-    }
-  };
-
-  useEffect(() => {
-    const scrollElement = scrollRef.current;
-    if (scrollElement) {
-      scrollElement.addEventListener('scroll', updateScrollPosition);
-      return () => scrollElement.removeEventListener('scroll', updateScrollPosition);
-    }
-  }, []);
 
   return (
     <div className="bg-white shadow-md sticky top-0 z-20">
       <div className="relative">
-        {/* Scroll Shadow Indicators */}
-        {scrollPosition > 0 && (
-          <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent pointer-events-none" />
-        )}
-        {scrollPosition < 0.98 && (
-          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none" />
-        )}
-
-        {/* Category Buttons */}
-        <div 
-          ref={scrollRef}
-          className="overflow-x-auto scrollbar-hide px-4 py-3 flex gap-3 snap-x snap-mandatory"
-        >
+        <div className="overflow-x-auto scrollbar-hide px-4 py-3 flex gap-3 snap-x snap-mandatory">
           {categories.map((category) => (
             <motion.button
               key={category.id}
@@ -111,25 +79,6 @@ const EnhancedCategoryNav = ({ categories, activeCategory, onCategoryChange }) =
             </motion.button>
           ))}
         </div>
-      </div>
-
-      {/* Quick-jump Dots */}
-      <div className="flex justify-center pb-2 gap-1.5">
-        {categories.map((_, index) => (
-          <motion.div
-            key={index}
-            className="w-1 h-1 rounded-full bg-gray-300"
-            animate={{
-              backgroundColor: 
-                index === Math.floor(scrollPosition * categories.length) 
-                  ? theme.primary 
-                  : '#d1d5db',
-              scale: index === Math.floor(scrollPosition * categories.length) 
-                ? 1.2 
-                : 1
-            }}
-          />
-        ))}
       </div>
     </div>
   );
