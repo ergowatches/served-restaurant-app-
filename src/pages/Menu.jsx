@@ -581,35 +581,35 @@ export default function Menu() {
       <ArrowLeft className="w-5 h-5 text-white" />
     </button>
     
-    {/* Restaurant Logo with position and shape */}
-    {theme.logo && (
-      <div 
+{/* Restaurant Logo with position and shape */}
+{theme.logo && (
+  <div 
+    className={`
+      ${theme.logoPosition === 'left' ? 'absolute left-16' : 'absolute left-1/2 transform -translate-x-1/2'}
+      z-30 flex items-center justify-center
+    `}
+    style={{top: '50%', transform: theme.logoPosition === 'center' ? 'translate(-50%, -50%)' : 'translateY(-50%)'}}
+  >
+    <div 
+      className={`
+        flex items-center justify-center bg-white/30 backdrop-blur-sm p-1
+        ${theme.logoShape === 'circle' ? 'rounded-full overflow-hidden' : 'rounded-md'}
+        ${theme.logoSize === 'small' ? 'h-8 w-8' : 
+          theme.logoSize === 'medium' ? 'h-10 w-10' : 
+          'h-12 w-12'}
+      `}
+    >
+      <img 
+        src={theme.logo} 
+        alt="Restaurant logo" 
         className={`
-          ${theme.logoPosition === 'left' ? 'absolute left-16' : 
-            theme.logoPosition === 'right' ? 'absolute right-16' : 
-            'absolute left-1/2 transform -translate-x-1/2'}
-          z-10
+          ${theme.logoShape === 'circle' ? 'h-full w-full object-cover' : 'h-full object-contain'}
+          max-w-full max-h-full
         `}
-      >
-        <div 
-          className={`
-            flex items-center justify-center bg-white/20 backdrop-blur-sm p-1
-            ${theme.logoShape === 'circle' ? 'rounded-full overflow-hidden' : ''}
-            ${theme.logoSize === 'small' ? 'h-8 w-8' : 
-              theme.logoSize === 'medium' ? 'h-10 w-10' : 
-              'h-12 w-12'}
-          `}
-        >
-          <img 
-            src={theme.logo} 
-            alt="Restaurant logo" 
-            className={`
-              ${theme.logoShape === 'circle' ? 'h-full w-full object-cover' : 'h-full object-contain max-w-full'}
-            `}
-          />
-        </div>
-      </div>
-    )}
+      />
+    </div>
+  </div>
+)}
     
     <div className="flex items-center space-x-2 z-20">
       <button 
