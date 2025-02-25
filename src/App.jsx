@@ -14,7 +14,7 @@ function App() {
   return (
     <ThemeProvider>
       <LanguageProvider>
-        <Router basename="/restaurant-ordering">
+        <Router>
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<TableInput />} />
