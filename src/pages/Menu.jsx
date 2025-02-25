@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTheme } from '../contexts/ThemeContext';
+import AllergenFilter from '../components/AllergenFilter';
 import { menuCategories, allergenTypes } from '../data/menuData';
 import { 
   Search, 
@@ -11,22 +12,33 @@ import {
   ChevronDown, 
   AlertTriangle, 
   Heart, 
-  Filter, 
-  Star, 
-  Clock,
-  ArrowLeft,
   ShoppingBag,
-  Menu as MenuIcon
+  Plus,
+  Minus,
+  Coffee,
+  Pizza,
+  Award,
+  Wine,
+  Cake,
+  ChevronUp,
+  ArrowLeft
 } from 'lucide-react';
 
 // Mobile-optimized Category Tabs
-const MobileCategories = ({ categories, activeCategory, onCategoryChange, theme }) => {
+const MobileCategoryNav = ({ categories, activeCategory, onCategoryChange, theme }) => {
   const scrollRef = useRef(null);
+  const icons = {
+    all: <Award />,
+    appetizers: <Award />,
+    mains: <Pizza />,
+    drinks: <Wine />,
+    desserts: <Cake />
+  };
   
   // Auto-scroll to active category
   useEffect(() => {
     if (scrollRef.current) {
-      const activeElement = scrollRef.current.querySelector('.active-category');
+      const activeElement = scrollRef.current.querySelector(`.category-${activeCategory}`);
       if (activeElement) {
         const scrollLeft = activeElement.offsetLeft - (scrollRef.current.clientWidth / 2) + (activeElement.clientWidth / 2);
         scrollRef.current.scrollTo({ left: scrollLeft, behavior: 'smooth' });
@@ -37,24 +49,38 @@ const MobileCategories = ({ categories, activeCategory, onCategoryChange, theme 
   return (
     <div 
       ref={scrollRef}
-      className="flex overflow-x-auto py-3 px-2 hide-scrollbar sticky top-0 bg-white z-10 border-b border-gray-100"
+      className="flex overflow-x-auto py-3 hide-scrollbar sticky top-16 z-20 bg-white shadow-sm border-b border-gray-100"
       style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
     >
       {categories.map(category => (
-        <button
+        <div
           key={category.id}
-          className={`flex-shrink-0 px-4 py-2 mx-1 rounded-full text-sm font-medium transition-all ${
-            activeCategory === category.id 
-              ? 'active-category text-white shadow-md'
-              : 'text-gray-600 bg-gray-100'
-          }`}
-          style={{ 
-            backgroundColor: activeCategory === category.id ? theme.primary : undefined 
-          }}
-          onClick={() => onCategoryChange(category.id)}
+          className={`category-${category.id} flex-shrink-0 mx-2 flex flex-col items-center`}
         >
-          {category.name}
-        </button>
+          <button
+            onClick={() => onCategoryChange(category.id)}
+            className={`w-16 h-16 rounded-xl flex items-center justify-center mb-1 transition-all ${
+              activeCategory === category.id ? 'shadow-md' : 'hover:bg-gray-50'
+            }`}
+            style={{
+              backgroundColor: activeCategory === category.id 
+                ? theme.primary 
+                : '#f3f4f6'
+            }}
+            aria-label={category.name}
+          >
+            <div className={`transition-colors ${
+              activeCategory === category.id ? 'text-white' : 'text-gray-600'
+            }`}>
+              {icons[category.id] || icons.all}
+            </div>
+          </button>
+          <span className={`text-xs font-medium transition-colors ${
+            activeCategory === category.id ? 'text-gray-900' : 'text-gray-600'
+          }`}>
+            {category.name}
+          </span>
+        </div>
       ))}
     </div>
   );
@@ -66,7 +92,7 @@ const EnhancedLanguageSwitcher = ({ currentLanguage, onLanguageChange }) => {
   const languages = [
     { code: 'en', name: 'English' },
     { code: 'es', name: 'Español' },
-    { code: 'fr', name: 'Français' }
+    { code: 'nl', name: 'Nederlands' }
   ];
 
   return (
@@ -110,121 +136,6 @@ const EnhancedLanguageSwitcher = ({ currentLanguage, onLanguageChange }) => {
   );
 };
 
-// Mobile Optimized Filter Sheet
-const MobileFilterSheet = ({ 
-  isOpen, 
-  onClose, 
-  selectedAllergens, 
-  onAllergenToggle, 
-  filterOptions, 
-  onFilterChange, 
-  theme 
-}) => {
-  // Prevent body scroll when filter is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'auto';
-    }
-    return () => {
-      document.body.style.overflow = 'auto';
-    };
-  }, [isOpen]);
-  
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.5 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black z-40"
-            onClick={onClose}
-          />
-          
-          <motion.div 
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 25 }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-50 max-h-[80vh] overflow-y-auto"
-          >
-            <div className="p-4 border-b border-gray-100 flex justify-between items-center">
-              <h2 className="text-lg font-semibold">Filters</h2>
-              <button 
-                onClick={onClose}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100"
-                aria-label="Close filters"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            
-            <div className="p-4">
-              <div className="mb-6">
-                <h3 className="font-medium text-gray-800 mb-3 flex items-center">
-                  <AlertTriangle className="w-4 h-4 mr-2 text-amber-500" />
-                  Dietary Restrictions
-                </h3>
-                
-                <div className="flex flex-wrap gap-2">
-                  {allergenTypes.map(allergen => (
-                    <button
-                      key={allergen.id}
-                      onClick={() => onAllergenToggle(allergen.id)}
-                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                        selectedAllergens.includes(allergen.id)
-                          ? 'bg-red-500 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      {allergen.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="mb-6">
-                <h3 className="font-medium text-gray-800 mb-3">Sort by</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {filterOptions.sortOptions.map(option => (
-                    <button
-                      key={option.id}
-                      onClick={() => onFilterChange('sort', option.id)}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center ${
-                        filterOptions.activeSort === option.id
-                          ? 'text-white'
-                          : 'bg-gray-100 text-gray-600'
-                      }`}
-                      style={{ 
-                        backgroundColor: filterOptions.activeSort === option.id ? theme.primary : undefined 
-                      }}
-                    >
-                      {option.id === 'popular' && <Star className="w-3 h-3 mr-1" />}
-                      {option.id === 'newest' && <Clock className="w-3 h-3 mr-1" />}
-                      {option.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              <button
-                onClick={onClose}
-                className="w-full py-3 rounded-lg font-medium text-white mt-4"
-                style={{ backgroundColor: theme.primary }}
-              >
-                Apply Filters
-              </button>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  );
-};
-
 // Enhanced Menu Item Card for mobile
 const MobileMenuItem = ({ item, isFavorite, onFavoriteToggle, onAddToCart, hasAllergenWarning, language, theme }) => {
   const [quantity, setQuantity] = useState(1);
@@ -250,81 +161,75 @@ const MobileMenuItem = ({ item, isFavorite, onFavoriteToggle, onAddToCart, hasAl
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className={`bg-white rounded-xl shadow-sm overflow-hidden relative ${
+      className={`bg-white rounded-xl shadow-sm overflow-hidden ${
         hasAllergenWarning ? 'ring-1 ring-red-500' : ''
       }`}
     >
-      {/* Image with favorite button and allergen warning */}
-      <div className="relative aspect-[4/3] bg-gray-100 overflow-hidden">
-        {item.image ? (
-          <img 
-            src={item.image} 
-            alt={item.name[language]} 
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gray-200">
-            <span className="text-gray-400 text-sm">No image</span>
+      <div className="p-4">
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            <div className="flex justify-between items-start mb-1">
+              <h3 className="font-medium text-gray-800">{item.name[language]}</h3>
+              <span className="font-bold text-lg ml-2" style={{ color: theme.primary }}>
+                ${item.price.toFixed(2)}
+              </span>
+            </div>
+            
+            <p className="text-sm text-gray-500 mb-2">
+              {item.description[language]}
+            </p>
+            
+            {/* Allergen tags */}
+            {item.allergens.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-3">
+                {item.allergens.map((allergenId) => {
+                  const allergen = allergenTypes.find(a => a.id === allergenId);
+                  return allergen ? (
+                    <span
+                      key={allergenId}
+                      className={`text-xs py-0.5 px-2 rounded-md ${
+                        hasAllergenWarning && allergen.id === hasAllergenWarning
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {allergen.name[language]}
+                    </span>
+                  ) : null;
+                })}
+              </div>
+            )}
           </div>
-        )}
-        
-        <button
-          onClick={() => onFavoriteToggle(item.id)}
-          className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-sm shadow-sm"
-          aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-        >
-          <Heart 
-            className={`w-4 h-4 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} 
-          />
-        </button>
-        
-        {hasAllergenWarning && (
-          <div className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-md flex items-center">
-            <AlertTriangle className="w-3 h-3 mr-1" />
-            <span>Allergen</span>
-          </div>
-        )}
-        
-        {item.isPopular && (
-          <div className="absolute bottom-2 left-2 bg-amber-500 text-white text-xs px-2 py-1 rounded-md flex items-center">
-            <Star className="w-3 h-3 mr-1" />
-            <span>Popular</span>
-          </div>
-        )}
-      </div>
-      
-      {/* Content */}
-      <div className="p-3">
-        <div className="flex justify-between items-start mb-1">
-          <h3 className="font-medium text-gray-800 flex-1">{item.name[language]}</h3>
-          <span className="font-bold text-lg" style={{ color: theme.primary }}>
-            ${item.price.toFixed(2)}
-          </span>
+          
+          <button
+            onClick={() => onFavoriteToggle(item.id)}
+            className="ml-2 p-2 rounded-full hover:bg-gray-50"
+            aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          >
+            <Heart 
+              className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} 
+            />
+          </button>
         </div>
-        
-        <p className="text-sm text-gray-500 mb-3 line-clamp-2">
-          {item.description[language]}
-        </p>
         
         {/* Add to cart controls */}
         {showControls ? (
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mt-2">
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
                 className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
                 aria-label="Decrease quantity"
               >
-                <span className="text-gray-600 font-bold">-</span>
+                <Minus className="w-4 h-4 text-gray-600" />
               </button>
-              <span className="font-medium">{quantity}</span>
+              <span className="font-medium text-gray-800">{quantity}</span>
               <button
                 onClick={() => setQuantity(quantity + 1)}
                 className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
                 aria-label="Increase quantity"
               >
-                <span className="text-gray-600 font-bold">+</span>
+                <Plus className="w-4 h-4 text-gray-600" />
               </button>
             </div>
             
@@ -339,7 +244,7 @@ const MobileMenuItem = ({ item, isFavorite, onFavoriteToggle, onAddToCart, hasAl
         ) : (
           <button
             onClick={() => setShowControls(true)}
-            className="w-full py-2 rounded-full text-sm font-medium flex items-center justify-center"
+            className="w-full py-2.5 rounded-full text-sm font-medium flex items-center justify-center mt-2"
             style={{ backgroundColor: `${theme.primary}15`, color: theme.primary }}
           >
             <ShoppingBag className="w-4 h-4 mr-1" />
@@ -413,7 +318,7 @@ const MobileCartSheet = ({ isOpen, onClose, items, onRemove, onUpdateQuantity, t
                             <h4 className="font-medium text-gray-800">{item.name}</h4>
                             <p className="text-sm text-gray-500 line-clamp-1">{item.description}</p>
                           </div>
-                          <span className="font-medium" style={{ color: theme.primary }}>
+                          <span className="font-medium ml-2" style={{ color: theme.primary }}>
                             ${(item.price * item.quantity).toFixed(2)}
                           </span>
                         </div>
@@ -423,14 +328,14 @@ const MobileCartSheet = ({ isOpen, onClose, items, onRemove, onUpdateQuantity, t
                             onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
                             className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm"
                           >
-                            <span className="text-gray-600 font-bold">-</span>
+                            <Minus className="w-3 h-3 text-gray-600" />
                           </button>
                           <span className="font-medium mx-3">{item.quantity}</span>
                           <button
                             onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
                             className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm"
                           >
-                            <span className="text-gray-600 font-bold">+</span>
+                            <Plus className="w-3 h-3 text-gray-600" />
                           </button>
                           
                           <button
@@ -509,22 +414,9 @@ export default function Menu() {
   const [favorites, setFavorites] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
   const searchInputRef = useRef(null);
-  
-  // Filter options
-  const [filterOptions, setFilterOptions] = useState({
-    activeSort: 'default',
-    sortOptions: [
-      { id: 'default', name: 'Default' },
-      { id: 'popular', name: 'Popular' },
-      { id: 'newest', name: 'New Items' },
-      { id: 'price-asc', name: 'Price: Low to High' },
-      { id: 'price-desc', name: 'Price: High to Low' }
-    ]
-  });
   
   // Handle scroll effects
   useEffect(() => {
@@ -535,13 +427,13 @@ export default function Menu() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   
-  // Categories data
+  // Categories data - transform from your data structure
   const categories = [
     { id: 'all', name: t('categories.all') },
-    { id: 'appetizers', name: t('categories.appetizers') },
-    { id: 'mains', name: t('categories.mains') },
-    { id: 'drinks', name: t('categories.drinks') },
-    { id: 'desserts', name: t('categories.desserts') }
+    ...menuCategories.map(category => ({
+      id: category.id,
+      name: category.name[language]
+    }))
   ];
   
   // Toggle allergen filter
@@ -577,16 +469,6 @@ export default function Menu() {
     }
   }, []);
   
-  // Apply filters to menu items
-  const handleFilterChange = (type, value) => {
-    if (type === 'sort') {
-      setFilterOptions(prev => ({
-        ...prev,
-        activeSort: value
-      }));
-    }
-  };
-  
   // Toggle search mode
   const toggleSearch = () => {
     setIsSearchOpen(!isSearchOpen);
@@ -600,7 +482,7 @@ export default function Menu() {
   };
   
   // Filter menu items
-  const filterItems = useCallback(() => {
+  const getFilteredItems = () => {
     let filtered = [];
     
     // Get items from selected category
@@ -620,29 +502,16 @@ export default function Menu() {
       );
     }
     
-    // Apply sort
-    switch (filterOptions.activeSort) {
-      case 'popular':
-        filtered.sort((a, b) => (b.isPopular ? 1 : 0) - (a.isPopular ? 1 : 0));
-        break;
-      case 'newest':
-        filtered.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
-        break;
-      case 'price-asc':
-        filtered.sort((a, b) => a.price - b.price);
-        break;
-      case 'price-desc':
-        filtered.sort((a, b) => b.price - a.price);
-        break;
-      default:
-        // Keep default order
-        break;
-    }
-    
     return filtered;
-  }, [activeCategory, language, searchQuery, filterOptions.activeSort]);
+  };
   
-  const filteredItems = filterItems();
+  const filteredItems = getFilteredItems();
+  
+  // Check if an item has any of the selected allergens
+  const hasSelectedAllergen = (item) => {
+    if (selectedAllergens.length === 0) return false;
+    return item.allergens.some(allergen => selectedAllergens.includes(allergen));
+  };
   
   // Cart functions
   const addToCart = (item) => {
@@ -699,7 +568,7 @@ export default function Menu() {
     <div className="min-h-screen bg-gray-50">
       {/* Mobile Optimized Header */}
       <header
-        className="sticky top-0 z-20"
+        className="sticky top-0 z-30"
         style={{ backgroundColor: theme.primary }}
       >
         {/* Menu Bar */}
@@ -719,14 +588,6 @@ export default function Menu() {
               aria-label={isSearchOpen ? "Close search" : "Search menu"}
             >
               {isSearchOpen ? <X className="w-5 h-5 text-white" /> : <Search className="w-5 h-5 text-white" />}
-            </button>
-            
-            <button 
-              onClick={() => setIsFilterOpen(true)}
-              className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-sm"
-              aria-label="Open filters"
-            >
-              <Filter className="w-5 h-5 text-white" />
             </button>
             
             <EnhancedLanguageSwitcher 
@@ -791,85 +652,116 @@ export default function Menu() {
       </header>
       
       {/* Category Navigation */}
-      <MobileCategories 
+      <MobileCategoryNav 
         categories={categories}
         activeCategory={activeCategory}
         onCategoryChange={setActiveCategory}
         theme={theme}
       />
       
-      {/* Applied Filter Pills */}
-      {(selectedAllergens.length > 0 || filterOptions.activeSort !== 'default') && (
-        <div className="flex overflow-x-auto py-2 px-4 hide-scrollbar bg-white border-b border-gray-100">
-          {selectedAllergens.map(allergenId => {
-            const allergen = allergenTypes.find(a => a.id === allergenId);
-            if (!allergen) return null;
-            
-            return (
-              <div key={allergenId} className="flex items-center bg-red-50 text-red-700 text-xs rounded-full px-3 py-1 mr-2 whitespace-nowrap">
-                <span>{allergen.name}</span>
-                <button 
-                  onClick={() => toggleAllergen(allergenId)}
-                  className="ml-1"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            );
-          })}
+      {/* Allergen Filter - Using your existing component */}
+      <AllergenFilter 
+        selectedAllergens={selectedAllergens}
+        onAllergenToggle={toggleAllergen}
+      />
+      
+      {/* Status Message for Filters and Search */}
+      {(searchQuery || selectedAllergens.length > 0) && (
+        <div className="bg-white px-4 py-3 border-b border-gray-100">
+          {searchQuery && (
+            <p className="text-sm text-gray-600 mb-2">
+              {filteredItems.length} results for "{searchQuery}"
+            </p>
+          )}
           
-          {filterOptions.activeSort !== 'default' && (
-            <div className="flex items-center bg-gray-100 text-gray-700 text-xs rounded-full px-3 py-1 mr-2 whitespace-nowrap">
-              <span>
-                {filterOptions.sortOptions.find(o => o.id === filterOptions.activeSort)?.name}
-              </span>
-              <button 
-                onClick={() => handleFilterChange('sort', 'default')}
-                className="ml-1"
-              >
-                <X className="w-3 h-3" />
-              </button>
+          {selectedAllergens.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              <span className="text-xs text-gray-500 mr-1 pt-1">Filtering by:</span>
+              {selectedAllergens.map(allergenId => {
+                const allergen = allergenTypes.find(a => a.id === allergenId);
+                if (!allergen) return null;
+                
+                return (
+                  <button 
+                    key={allergenId}
+                    onClick={() => toggleAllergen(allergenId)}
+                    className="inline-flex items-center bg-red-100 text-red-800 text-xs rounded-full px-2 py-1"
+                  >
+                    {allergen.name[language]}
+                    <X className="w-3 h-3 ml-1" />
+                  </button>
+                );
+              })}
+              
+              {selectedAllergens.length > 0 && (
+                <button
+                  onClick={() => setSelectedAllergens([])}
+                  className="text-xs text-blue-600 ml-2"
+                >
+                  Clear all
+                </button>
+              )}
             </div>
           )}
         </div>
       )}
       
-      {/* Status Message for Filters */}
-      {searchQuery && (
-        <div className="px-4 py-3 bg-white border-b border-gray-100">
-          <p className="text-sm text-gray-600">
-            {filteredItems.length} results for "{searchQuery}"
-          </p>
+      {/* Category Headers */}
+      {activeCategory === 'all' && !searchQuery && (
+        <div className="pb-16"> {/* Extra padding at bottom for FAB */}
+          {menuCategories.map(category => (
+            <div key={category.id} className="mb-6">
+              <div className="px-4 py-2 bg-gray-50 sticky top-[138px] z-10 border-y border-gray-100">
+                <h2 className="text-lg font-bold text-gray-800">
+                  {category.name[language]}
+                </h2>
+              </div>
+              
+              <div className="p-4 space-y-4">
+                {category.items.map(item => (
+                  <MobileMenuItem
+                    key={item.id}
+                    item={item}
+                    isFavorite={favorites.includes(item.id)}
+                    onFavoriteToggle={() => toggleFavorite(item.id)}
+                    onAddToCart={addToCart}
+                    hasAllergenWarning={hasSelectedAllergen(item) ? item.allergens.find(a => selectedAllergens.includes(a)) : null}
+                    language={language}
+                    theme={theme}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
       
-      {/* Menu Items Grid */}
-      <div className="px-4 py-4">
-        {filteredItems.length === 0 ? (
-          <div className="py-12 flex flex-col items-center justify-center text-center">
-            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-              <Search className="w-8 h-8 text-gray-400" />
+      {/* Filtered Items */}
+      {(activeCategory !== 'all' || searchQuery) && (
+        <div className="p-4 space-y-4 pb-16"> {/* Extra padding at bottom for FAB */}
+          {filteredItems.length === 0 ? (
+            <div className="py-12 flex flex-col items-center justify-center text-center">
+              <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                <Search className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-xl font-medium text-gray-800 mb-2">No items found</h3>
+              <p className="text-gray-500 max-w-xs">
+                Try adjusting your search or filters to find what you're looking for
+              </p>
+              {(searchQuery || selectedAllergens.length > 0) && (
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedAllergens([]);
+                  }}
+                  className="mt-4 px-4 py-2 rounded-lg text-white font-medium"
+                  style={{ backgroundColor: theme.primary }}
+                >
+                  Clear All Filters
+                </button>
+              )}
             </div>
-            <h3 className="text-xl font-medium text-gray-800 mb-2">No items found</h3>
-            <p className="text-gray-500 max-w-xs">
-              Try adjusting your search or filters to find what you're looking for
-            </p>
-            {(searchQuery || selectedAllergens.length > 0 || filterOptions.activeSort !== 'default') && (
-              <button
-                onClick={() => {
-                  setSearchQuery('');
-                  setSelectedAllergens([]);
-                  handleFilterChange('sort', 'default');
-                }}
-                className="mt-4 px-4 py-2 rounded-lg text-white font-medium"
-                style={{ backgroundColor: theme.primary }}
-              >
-                Clear All Filters
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          ) : (
             <AnimatePresence mode="popLayout">
               {filteredItems.map((item) => (
                 <MobileMenuItem
@@ -878,31 +770,15 @@ export default function Menu() {
                   isFavorite={favorites.includes(item.id)}
                   onFavoriteToggle={() => toggleFavorite(item.id)}
                   onAddToCart={addToCart}
-                  hasAllergenWarning={selectedAllergens.some(allergen => 
-                    item.allergens.includes(allergen)
-                  )}
+                  hasAllergenWarning={hasSelectedAllergen(item) ? item.allergens.find(a => selectedAllergens.includes(a)) : null}
                   language={language}
                   theme={theme}
                 />
               ))}
             </AnimatePresence>
-          </div>
-        )}
-        
-        {/* Bottom spacing for floating button */}
-        <div className="h-20"></div>
-      </div>
-      
-      {/* Filter Sheet */}
-      <MobileFilterSheet 
-        isOpen={isFilterOpen}
-        onClose={() => setIsFilterOpen(false)}
-        selectedAllergens={selectedAllergens}
-        onAllergenToggle={toggleAllergen}
-        filterOptions={filterOptions}
-        onFilterChange={handleFilterChange}
-        theme={theme}
-      />
+          )}
+        </div>
+      )}
       
       {/* Cart Sheet */}
       <MobileCartSheet
