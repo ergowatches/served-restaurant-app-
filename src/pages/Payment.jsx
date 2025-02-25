@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { motion } from 'framer-motion';
@@ -8,8 +8,13 @@ import ItemBasedSplitter from '../components/ItemBasedSplitter';
 export default function Payment() {
   const navigate = useNavigate();
   const { theme } = useTheme();
-  const { state } = useLocation();
-  const { items, total } = state || { items: [], total: 0 };
+  const location = useLocation();
+  
+  // Safely extract state with proper defaults and type conversion
+  const state = location.state || { items: [], total: 0 };
+  const items = state.items || [];
+  // Ensure total is always a number
+  const initialTotal = typeof state.total === 'number' ? state.total : parseFloat(state.total || 0);
 
   const [splitMode, setSplitMode] = useState('equal');
   const [splitCount, setSplitCount] = useState(1);
@@ -22,6 +27,14 @@ export default function Payment() {
     'SAVE5': { code: 'SAVE5', amount: 5, type: 'fixed' }
   };
 
+  // Handle empty state when someone navigates directly to the payment page
+  useEffect(() => {
+    if (items.length === 0) {
+      // Redirect to menu if there are no items
+      navigate('/menu/1', { replace: true });
+    }
+  }, [items, navigate]);
+
   const applyDiscount = () => {
     const discount = availableDiscounts[discountCode.toUpperCase()];
     if (discount) {
@@ -33,14 +46,14 @@ export default function Payment() {
   const calculateDiscount = () => {
     if (!appliedDiscount) return 0;
     if (appliedDiscount.type === 'percentage') {
-      return (total * appliedDiscount.amount);
+      return (initialTotal * appliedDiscount.amount);
     }
     return appliedDiscount.amount;
   };
 
   const discountAmount = calculateDiscount();
-  const finalTotal = total - discountAmount;
-  const amountPerPerson = (finalTotal / splitCount).toFixed(2);
+  const finalTotal = initialTotal - discountAmount;
+  const amountPerPerson = splitCount > 0 ? (finalTotal / splitCount).toFixed(2) : "0.00";
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -247,7 +260,7 @@ export default function Payment() {
           ) : (
             <ItemBasedSplitter 
               items={items} 
-              total={total} 
+              total={initialTotal} 
               appliedDiscount={appliedDiscount}
               theme={theme}
             />
@@ -265,7 +278,7 @@ export default function Payment() {
             <div className="space-y-2">
               <div className="flex justify-between text-gray-600">
                 <span>Subtotal</span>
-                <span>${total.toFixed(2)}</span>
+                <span>${initialTotal.toFixed(2)}</span>
               </div>
               {appliedDiscount && (
                 <div className="flex justify-between text-green-600">
@@ -288,6 +301,29 @@ export default function Payment() {
           transition={{ delay: 0.4 }}
           style={{ backgroundColor: theme.primary }}
           className="w-full text-white py-4 rounded-xl font-medium text-lg shadow-lg hover:opacity-90 transition-all flex items-center justify-center space-x-2"
+          onClick={() => {
+            // Mock payment processing with a brief delay
+            const paymentButton = document.activeElement;
+            if (paymentButton) {
+              paymentButton.disabled = true;
+              paymentButton.innerHTML = 'Processing...';
+            }
+            
+            setTimeout(() => {
+              // Navigate to confirmation page with order details
+              navigate('/payment-confirmation', {
+                state: {
+                  orderDetails: {
+                    orderId: 'ORD-' + Math.floor(100000 + Math.random() * 900000),
+                    total: finalTotal,
+                    items: items,
+                    timestamp: new Date().toISOString()
+                  }
+                },
+                replace: true
+              });
+            }, 1500);
+          }}
         >
           <CreditCard className="w-5 h-5 mr-1" />
           <span>Proceed to Payment</span>
