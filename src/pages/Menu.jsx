@@ -566,52 +566,50 @@ export default function Menu() {
   
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile Optimized Header */}
+{/* Mobile Optimized Header */}
 <header
   className="sticky top-0 z-30"
   style={{ backgroundColor: theme.primary }}
 >
   {/* Menu Bar */}
-  <div className="px-4 py-3 flex items-center justify-between relative">
-    <button 
-      onClick={() => navigate('/')}
-      className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-sm"
-      aria-label="Go back"
-    >
-      <ArrowLeft className="w-5 h-5 text-white" />
-    </button>
-    
-{/* Restaurant Logo with position and shape */}
-{theme.logo && (
-  <div 
-    className={`
-      ${theme.logoPosition === 'left' ? 'absolute left-16' : 'absolute left-1/2 transform -translate-x-1/2'}
-      z-30 flex items-center justify-center
-    `}
-    style={{top: '50%', transform: theme.logoPosition === 'center' ? 'translate(-50%, -50%)' : 'translateY(-50%)'}}
-  >
-    <div 
-      className={`
-        flex items-center justify-center bg-white/30 backdrop-blur-sm p-1
-        ${theme.logoShape === 'circle' ? 'rounded-full overflow-hidden' : 'rounded-md'}
-        ${theme.logoSize === 'small' ? 'h-8 w-8' : 
-          theme.logoSize === 'medium' ? 'h-10 w-10' : 
-          'h-12 w-12'}
-      `}
-    >
-      <img 
-        src={theme.logo} 
-        alt="Restaurant logo" 
-        className={`
-          ${theme.logoShape === 'circle' ? 'h-full w-full object-cover' : 'h-full object-contain'}
-          max-w-full max-h-full
-        `}
-      />
+  <div className="px-4 py-3 flex items-center">
+    {/* Left side - Back button */}
+    <div className="flex-none">
+      <button 
+        onClick={() => navigate('/')}
+        className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-sm"
+        aria-label="Go back"
+      >
+        <ArrowLeft className="w-5 h-5 text-white" />
+      </button>
     </div>
-  </div>
-)}
     
-    <div className="flex items-center space-x-2 z-20">
+    {/* Center - Logo */}
+    <div className={`flex-1 flex ${theme.logoPosition === 'center' ? 'justify-center' : 'justify-start ml-3'}`}>
+      {theme.logo && (
+        <div 
+          className={`
+            flex items-center justify-center bg-white/30 backdrop-blur-sm p-1
+            ${theme.logoShape === 'circle' ? 'rounded-full overflow-hidden' : 'rounded-md'}
+            ${theme.logoSize === 'small' ? 'h-8 w-8' : 
+              theme.logoSize === 'medium' ? 'h-10 w-10' : 
+              'h-12 w-12'}
+          `}
+        >
+          <img 
+            src={theme.logo} 
+            alt="Restaurant logo" 
+            className={`
+              ${theme.logoShape === 'circle' ? 'h-full w-full object-cover' : 'h-full object-contain'}
+              max-w-full
+            `}
+          />
+        </div>
+      )}
+    </div>
+    
+    {/* Right side - Search/Language */}
+    <div className="flex-none flex items-center space-x-2">
       <button 
         onClick={toggleSearch}
         className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-sm"
