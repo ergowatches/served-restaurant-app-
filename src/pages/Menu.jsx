@@ -567,100 +567,119 @@ export default function Menu() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mobile Optimized Header */}
-      <header
-        className="sticky top-0 z-30"
-        style={{ backgroundColor: theme.primary }}
+<header
+  className="sticky top-0 z-30"
+  style={{ backgroundColor: theme.primary }}
+>
+  {/* Menu Bar */}
+  <div className="px-4 py-3 flex items-center justify-between relative">
+    <button 
+      onClick={() => navigate('/')}
+      className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-sm"
+      aria-label="Go back"
+    >
+      <ArrowLeft className="w-5 h-5 text-white" />
+    </button>
+    
+    {/* Restaurant Logo with position and shape */}
+    {theme.logo && (
+      <div 
+        className={`
+          ${theme.logoPosition === 'left' ? 'absolute left-16' : 
+            theme.logoPosition === 'right' ? 'absolute right-16' : 
+            'absolute left-1/2 transform -translate-x-1/2'}
+          z-10
+        `}
       >
-    {/* Menu Bar */}
-    <div className="px-4 py-3 flex items-center justify-between">
-      <button 
-        onClick={() => navigate('/')}
-        className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-sm"
-        aria-label="Go back"
-      >
-        <ArrowLeft className="w-5 h-5 text-white" />
-      </button>
-      
-      {/* Restaurant Logo (if available) */}
-      {theme.logo && (
-        <div className="absolute left-1/2 transform -translate-x-1/2">
+        <div 
+          className={`
+            flex items-center justify-center bg-white/20 backdrop-blur-sm p-1
+            ${theme.logoShape === 'circle' ? 'rounded-full overflow-hidden' : ''}
+            ${theme.logoSize === 'small' ? 'h-8 w-8' : 
+              theme.logoSize === 'medium' ? 'h-10 w-10' : 
+              'h-12 w-12'}
+          `}
+        >
           <img 
             src={theme.logo} 
             alt="Restaurant logo" 
-            className="h-10 object-contain"
+            className={`
+              ${theme.logoShape === 'circle' ? 'h-full w-full object-cover' : 'h-full object-contain max-w-full'}
+            `}
           />
         </div>
-      )}
-      
-      <div className="flex items-center space-x-2">
-        <button 
-          onClick={toggleSearch}
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-sm"
-          aria-label={isSearchOpen ? "Close search" : "Search menu"}
-        >
-          {isSearchOpen ? <X className="w-5 h-5 text-white" /> : <Search className="w-5 h-5 text-white" />}
-        </button>
-        
-        <EnhancedLanguageSwitcher 
-          currentLanguage={language} 
-          onLanguageChange={setLanguage} 
-        />
       </div>
+    )}
+    
+    <div className="flex items-center space-x-2 z-20">
+      <button 
+        onClick={toggleSearch}
+        className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-sm"
+        aria-label={isSearchOpen ? "Close search" : "Search menu"}
+      >
+        {isSearchOpen ? <X className="w-5 h-5 text-white" /> : <Search className="w-5 h-5 text-white" />}
+      </button>
+      
+      <EnhancedLanguageSwitcher 
+        currentLanguage={language} 
+        onLanguageChange={setLanguage} 
+      />
     </div>
-    
-    {/* Welcome Banner */}
-    <AnimatePresence>
-      {showWelcome && !isSearchOpen && (
-        <motion.div 
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          exit={{ opacity: 0, height: 0 }}
-          className="text-center py-3"
-        >
-          <h1 className="text-2xl font-bold text-white mb-1">
-            {t('header.welcome')}
-          </h1>
-          <div className="inline-block bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full">
-            <p className="text-white text-sm">
-              Table <span className="font-semibold">{tableNumber}</span>
-            </p>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-    
-    {/* Search Input */}
-    <AnimatePresence>
-      {isSearchOpen && (
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className="px-4 pb-3"
-        >
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              ref={searchInputRef}
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search menu..."
-              className="w-full py-2.5 pl-10 pr-4 bg-white/95 backdrop-blur-sm rounded-xl text-gray-700 focus:outline-none"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  </header>
+  </div>
+  
+  {/* Welcome Banner */}
+  <AnimatePresence>
+    {showWelcome && !isSearchOpen && (
+      <motion.div 
+        initial={{ opacity: 0, height: 0 }}
+        animate={{ opacity: 1, height: 'auto' }}
+        exit={{ opacity: 0, height: 0 }}
+        className="text-center py-3"
+      >
+        <h1 className="text-2xl font-bold text-white mb-1">
+          {t('header.welcome')}
+        </h1>
+        <div className="inline-block bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full">
+          <p className="text-white text-sm">
+            Table <span className="font-semibold">{tableNumber}</span>
+          </p>
+        </div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+  
+  {/* Search Input */}
+  <AnimatePresence>
+    {isSearchOpen && (
+      <motion.div 
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
+        className="px-4 pb-3"
+      >
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search menu..."
+            className="w-full py-2.5 pl-10 pr-4 bg-white/95 backdrop-blur-sm rounded-xl text-gray-700 focus:outline-none"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+</header>
       
       {/* Category Navigation */}
       <MobileCategoryNav 

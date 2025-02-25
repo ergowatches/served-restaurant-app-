@@ -62,18 +62,48 @@ export default function Payment() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-white border-b sticky top-0 z-10 shadow-sm"
+        style={{ backgroundColor: theme.primary }}
       >
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between relative">
             <button 
               onClick={() => navigate(-1)}
-              className="flex items-center text-gray-600 font-medium hover:text-gray-900 transition-colors"
+              className="flex items-center text-white font-medium hover:text-white/80 transition-colors"
             >
               <ChevronLeft className="w-5 h-5 mr-1" />
               Back
             </button>
-            <h1 className="text-xl font-bold" style={{ color: theme.primary }}>Payment</h1>
-            <div className="w-16"></div> {/* Placeholder for balance */}
+            
+            {/* Restaurant Logo */}
+            {theme.logo && (
+              <div 
+                className={`
+                  ${theme.logoPosition === 'left' ? 'absolute left-16' : 
+                    theme.logoPosition === 'right' ? 'absolute right-16' : 
+                    'absolute left-1/2 transform -translate-x-1/2'}
+                `}
+              >
+                <div 
+                  className={`
+                    flex items-center justify-center bg-white/20 backdrop-blur-sm p-1
+                    ${theme.logoShape === 'circle' ? 'rounded-full overflow-hidden' : ''}
+                    ${theme.logoSize === 'small' ? 'h-8 w-8' : 
+                      theme.logoSize === 'medium' ? 'h-10 w-10' : 
+                      'h-12 w-12'}
+                  `}
+                >
+                  <img 
+                    src={theme.logo} 
+                    alt="Restaurant logo" 
+                    className={`
+                      ${theme.logoShape === 'circle' ? 'h-full w-full object-cover' : 'h-full object-contain max-w-full'}
+                    `}
+                  />
+                </div>
+              </div>
+            )}
+            
+            <h1 className="text-xl font-bold text-white">Payment</h1>
           </div>
         </div>
       </motion.div>
