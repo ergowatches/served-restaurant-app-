@@ -1,34 +1,16 @@
 import { motion } from 'framer-motion';
 import { useTheme } from '../contexts/ThemeContext';
+import { Coffee, Pizza, Award, Wine, Cake } from 'lucide-react';
 
 const CategoryIcon = ({ category, isActive }) => {
   const icons = {
-    all: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-      </svg>
-    ),
-    appetizers: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-      </svg>
-    ),
-    mains: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h18v18H3z" />
-      </svg>
-    ),
-    drinks: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-      </svg>
-    ),
-    desserts: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18z" />
-      </svg>
-    ),
+    all: <Award className="w-5 h-5" />,
+    appetizers: <Award className="w-5 h-5" />,
+    mains: <Pizza className="w-5 h-5" />,
+    drinks: <Wine className="w-5 h-5" />,
+    desserts: <Cake className="w-5 h-5" />,
   };
+  
   return (
     <div className={`transition-colors ${isActive ? 'text-white' : 'text-gray-600'}`}>
       {icons[category] || icons.all}
@@ -38,24 +20,24 @@ const CategoryIcon = ({ category, isActive }) => {
 
 const EnhancedCategoryNav = ({ categories, activeCategory, onCategoryChange }) => {
   const { theme } = useTheme();
-
+  
   return (
-    <div className="bg-white shadow-md sticky top-0 z-20">
-      <div className="relative">
-        <div className="overflow-x-auto scrollbar-hide px-4 py-3 flex gap-3 snap-x snap-mandatory">
+    <div className="bg-white shadow-sm sticky top-0 z-20">
+      <div className="relative px-4 py-3">
+        <div className="overflow-x-auto scrollbar-hide flex gap-4 snap-x snap-mandatory">
           {categories.map((category) => (
             <motion.button
               key={category.id}
               onClick={() => onCategoryChange(category.id)}
-              className={`flex flex-col items-center snap-start min-w-[80px] ${
+              className={`flex flex-col items-center snap-start min-w-[80px] transition-all ${
                 activeCategory === category.id ? 'scale-105' : ''
               }`}
               whileTap={{ scale: 0.95 }}
             >
               <div
-                className={`w-16 h-16 rounded-xl flex items-center justify-center mb-1 transition-all ${
+                className={`w-16 h-16 rounded-xl flex items-center justify-center mb-1 transition-all shadow-sm ${
                   activeCategory === category.id 
-                    ? 'shadow-lg' 
+                    ? 'shadow-md' 
                     : 'hover:bg-gray-50'
                 }`}
                 style={{

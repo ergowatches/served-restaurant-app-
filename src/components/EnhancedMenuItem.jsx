@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Heart } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Heart, Minus, Plus, AlertTriangle } from 'lucide-react';
 
 const EnhancedMenuItem = ({
   item,
@@ -32,11 +32,11 @@ const EnhancedMenuItem = ({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       whileTap={{ scale: 0.98 }}
-      className={`bg-white rounded-xl shadow-sm overflow-hidden ${
-        hasAllergenWarning ? 'ring-2 ring-red-200' : ''
+      className={`bg-white rounded-xl shadow-sm overflow-hidden border ${
+        hasAllergenWarning ? 'border-red-200' : 'border-gray-100'
       }`}
     >
-      <div className="p-4">
+      <div className="p-5">
         {/* Header */}
         <div className="flex justify-between items-start">
           <div className="flex-1">
@@ -65,17 +65,21 @@ const EnhancedMenuItem = ({
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
-            className="mt-2"
+            className="mt-3 bg-red-50 p-2 rounded-lg border border-red-100 flex items-start"
           >
-            <div className="flex flex-wrap gap-1">
-              {item.allergens.map(allergen => (
-                <span
-                  key={allergen}
-                  className="px-2 py-1 rounded-full text-xs font-medium bg-red-50 text-red-600"
-                >
-                  {allergen}
-                </span>
-              ))}
+            <AlertTriangle className="w-4 h-4 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-xs font-medium text-red-700">Allergen warning</p>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {item.allergens.map(allergen => (
+                  <span
+                    key={allergen}
+                    className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-600"
+                  >
+                    {allergen}
+                  </span>
+                ))}
+              </div>
             </div>
           </motion.div>
         )}
@@ -87,23 +91,21 @@ const EnhancedMenuItem = ({
               <span className="text-xl font-bold" style={{ color: theme.primary }}>
                 ${item.price}
               </span>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center border border-gray-200 rounded-full overflow-hidden">
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: `${theme.primary}15` }}
+                  className="w-8 h-8 flex items-center justify-center hover:bg-gray-100"
                 >
-                  -
+                  <Minus className="w-3 h-3" />
                 </motion.button>
                 <span className="w-8 text-center font-medium">{quantity}</span>
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   onClick={() => setQuantity(quantity + 1)}
-                  className="w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: `${theme.primary}15` }}
+                  className="w-8 h-8 flex items-center justify-center hover:bg-gray-100"
                 >
-                  +
+                  <Plus className="w-3 h-3" />
                 </motion.button>
               </div>
             </div>
@@ -112,7 +114,7 @@ const EnhancedMenuItem = ({
               whileTap={{ scale: 0.95 }}
               animate={isAdding ? { scale: [1, 1.1, 1] } : {}}
               onClick={handleAddToCart}
-              className="px-6 py-2 rounded-full text-white font-medium"
+              className="px-6 py-2 rounded-full text-white font-medium shadow-sm"
               style={{ backgroundColor: theme.primary }}
             >
               Add to Cart
