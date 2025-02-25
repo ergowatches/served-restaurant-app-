@@ -1,11 +1,49 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '../contexts/ThemeContext'
-import { Save, LogOut, RefreshCw, Settings, Upload, X, AlignLeft, AlignCenter, Circle, Square, ZoomIn, ZoomOut } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { 
+  Save, 
+  LogOut, 
+  Settings, 
+  Upload, 
+  Image, 
+  X, 
+  AlignLeft, 
+  AlignCenter, 
+  Circle, 
+  Square, 
+  ZoomIn, 
+  ZoomOut, 
+  ChevronLeft, 
+  ChevronRight, 
+  Coffee, 
+  Home, 
+  PanelLeft, 
+  Menu as MenuIcon, 
+  Smartphone, 
+  Palette, 
+  Check, 
+  Eye, 
+  EyeOff, 
+  RefreshCw, 
+  Info, 
+  ArrowLeft,
+  Search,
+  Globe,
+  Laptop,
+  Monitor,
+  Plus,
+  Minus,
+  MoreHorizontal,
+  ShoppingBag
+} from 'lucide-react'
 
 export default function Dashboard() {
   const navigate = useNavigate()
   const { theme, updateTheme } = useTheme()
+  
+  // State management
   const [colors, setColors] = useState(theme)
   const [savedMessage, setSavedMessage] = useState('')
   const [logo, setLogo] = useState(theme.logo || null)
@@ -13,18 +51,35 @@ export default function Dashboard() {
   const [logoPosition, setLogoPosition] = useState(theme.logoPosition || 'center')
   const [logoSize, setLogoSize] = useState(theme.logoSize || 'medium')
   const [isEditingLogo, setIsEditingLogo] = useState(false)
+  const [banner, setBanner] = useState(theme.banner || null)
+  const [isEditingBanner, setIsEditingBanner] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [activeSection, setActiveSection] = useState('dashboard')
+  const [previewDevice, setPreviewDevice] = useState('mobile')
+  const [showToast, setShowToast] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
+  const [toastType, setToastType] = useState('success')
   
   // Image editor states
   const [zoom, setZoom] = useState(theme.logoZoom || 1)
   const [position, setPosition] = useState(theme.logoOffset || { x: 0, y: 0 })
+  const [bannerZoom, setBannerZoom] = useState(theme.bannerZoom || 1)
+  const [bannerPosition, setBannerPosition] = useState(theme.bannerOffset || { x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
   const [startPosition, setStartPosition] = useState({ x: 0, y: 0 })
   const [imageOriginal, setImageOriginal] = useState(null)
+  const [bannerOriginal, setBannerOriginal] = useState(null)
+  const [unsavedChanges, setUnsavedChanges] = useState(false)
   
-  const fileInputRef = useRef(null)
+  const logoInputRef = useRef(null)
+  const bannerInputRef = useRef(null)
   const imageEditorRef = useRef(null)
+  const bannerEditorRef = useRef(null)
   const imageRef = useRef(null)
+  const bannerRef = useRef(null)
+  const colorPickerRefs = useRef({})
 
+  // Authentication check
   useEffect(() => {
     const isAuthenticated = localStorage.getItem('isAuthenticated')
     if (!isAuthenticated) {
@@ -32,39 +87,99 @@ export default function Dashboard() {
     }
   }, [navigate])
 
+  // Initialize from theme
   useEffect(() => {
-    // Initialize position and zoom from theme if available
     if (theme.logoPosition) setLogoPosition(theme.logoPosition)
     if (theme.logoZoom) setZoom(theme.logoZoom)
     if (theme.logoOffset) setPosition(theme.logoOffset)
+    if (theme.banner) setBanner(theme.banner)
+    if (theme.bannerZoom) setBannerZoom(theme.bannerZoom)
+    if (theme.bannerOffset) setBannerPosition(theme.bannerOffset)
   }, [theme])
+  
+  // Track unsaved changes
+  useEffect(() => {
+    const themeChanged = JSON.stringify(colors) !== JSON.stringify(theme) ||
+      logo !== theme.logo ||
+      logoShape !== theme.logoShape ||
+      logoPosition !== theme.logoPosition ||
+      logoSize !== theme.logoSize ||
+      zoom !== theme.logoZoom ||
+      JSON.stringify(position) !== JSON.stringify(theme.logoOffset) ||
+      banner !== theme.banner ||
+      bannerZoom !== theme.bannerZoom ||
+      JSON.stringify(bannerPosition) !== JSON.stringify(theme.bannerOffset)
+      
+    setUnsavedChanges(themeChanged)
+  }, [colors, logo, logoShape, logoPosition, logoSize, zoom, position, banner, bannerZoom, bannerPosition, theme])
 
+  // Handle window resize for sidebar
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setSidebarOpen(false)
+      } else {
+        setSidebarOpen(true)
+      }
+    }
+    
+    window.addEventListener('resize', handleResize)
+    handleResize()
+    
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  // Handle color change
   const handleColorChange = (key, value) => {
     setColors(prev => ({
       ...prev,
       [key]: value
     }))
   }
+  
+  // Show toast notification
+  const showNotification = (message, type = 'success') => {
+    setToastMessage(message)
+    setToastType(type)
+    setShowToast(true)
+    setTimeout(() => setShowToast(false), 3000)
+  }
 
+  // Save theme changes
   const handleSave = () => {
-    updateTheme({
+    const updatedTheme = {
       ...colors,
       logo,
       logoShape,
       logoPosition,
       logoSize,
       logoZoom: zoom,
-      logoOffset: position
-    })
-    setSavedMessage('Changes saved successfully!')
-    setTimeout(() => setSavedMessage(''), 3000)
+      logoOffset: position,
+      banner,
+      bannerZoom,
+      bannerOffset: bannerPosition
+    }
+    
+    updateTheme(updatedTheme)
+    showNotification('Your changes have been saved successfully!')
+    setUnsavedChanges(false)
   }
 
+  // Logout handler
   const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated')
-    navigate('/dashboard-login')
+    // If there are unsaved changes, confirm before logout
+    if (unsavedChanges) {
+      if (window.confirm('You have unsaved changes. Are you sure you want to logout?')) {
+        localStorage.removeItem('isAuthenticated')
+        navigate('/dashboard-login')
+      }
+    } else {
+      localStorage.removeItem('isAuthenticated')
+      navigate('/dashboard-login')
+    }
   }
 
+  // Reset to defaults
   const handleReset = () => {
     const defaultTheme = {
       primary: '#DB2777',
@@ -76,8 +191,12 @@ export default function Dashboard() {
       logoPosition: 'center',
       logoSize: 'medium',
       logoZoom: 1,
-      logoOffset: { x: 0, y: 0 }
+      logoOffset: { x: 0, y: 0 },
+      banner: null,
+      bannerZoom: 1,
+      bannerOffset: { x: 0, y: 0 }
     }
+    
     setColors(defaultTheme)
     setLogo(null)
     setLogoShape('circle')
@@ -85,62 +204,82 @@ export default function Dashboard() {
     setLogoSize('medium')
     setZoom(1)
     setPosition({ x: 0, y: 0 })
+    setBanner(null)
+    setBannerZoom(1)
+    setBannerPosition({ x: 0, y: 0 })
     updateTheme(defaultTheme)
-    setSavedMessage('Theme reset to defaults!')
-    setTimeout(() => setSavedMessage(''), 3000)
+    showNotification('Theme reset to defaults')
   }
 
+  // Handle logo upload
   const handleLogoUpload = (e) => {
     const file = e.target.files[0]
     if (!file) return
   
-    // Check if the file is an image
+    // Check file type
     if (!file.type.startsWith('image/')) {
-      alert('Please upload an image file')
+      showNotification('Please upload an image file', 'error')
       return
     }
   
     // Check file size (limit to 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      alert('Logo must be less than 2MB')
+      showNotification('Logo must be less than 2MB', 'error')
       return
     }
   
     const reader = new FileReader()
     reader.onload = (event) => {
       setImageOriginal(event.target.result)
-      // Set initial zoom to show the full image
-      setZoom(0.8) // Start zoomed out
-      setPosition({ x: 0, y: 0 })
       setIsEditingLogo(true)
-      
-      // Preload the image to calculate better initial zoom
-      const img = new Image()
-      img.onload = () => {
-        // Calculate initial zoom to fit image within container
-        if (imageEditorRef.current) {
-          const containerSize = imageEditorRef.current.clientWidth
-          const imgRatio = img.width / img.height
-          const zoomFactor = imgRatio > 1 ? 
-            containerSize / img.width * 0.8 : 
-            containerSize / img.height * 0.8
-          setZoom(Math.min(1, zoomFactor)) // Cap at 1 to avoid zooming in initially
-        }
-      }
-      img.src = event.target.result
     }
     reader.readAsDataURL(file)
   }
 
+  // Handle banner upload
+  const handleBannerUpload = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+  
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      showNotification('Please upload an image file', 'error')
+      return
+    }
+  
+    // Check file size (limit to 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      showNotification('Banner must be less than 2MB', 'error')
+      return
+    }
+  
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      setBannerOriginal(event.target.result)
+      setIsEditingBanner(true)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  // Remove logo
   const handleLogoRemove = () => {
     setLogo(null)
     setImageOriginal(null)
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
+    if (logoInputRef.current) {
+      logoInputRef.current.value = ''
     }
   }
 
-  // Handle mouse down for image dragging
+  // Remove banner
+  const handleBannerRemove = () => {
+    setBanner(null)
+    setBannerOriginal(null)
+    if (bannerInputRef.current) {
+      bannerInputRef.current.value = ''
+    }
+  }
+
+  // Handle mouse down for logo dragging
   const handleMouseDown = (e) => {
     e.preventDefault()
     if (!imageRef.current) return
@@ -152,7 +291,7 @@ export default function Dashboard() {
     })
   }
 
-  // Handle mouse move for image dragging
+  // Handle mouse move for logo dragging
   const handleMouseMove = (e) => {
     e.preventDefault()
     if (!isDragging || !imageRef.current || !imageEditorRef.current) return
@@ -161,7 +300,7 @@ export default function Dashboard() {
     const newX = e.clientX - startPosition.x
     const newY = e.clientY - startPosition.y
     
-    // Apply the new position (we'll handle boundaries during rendering)
+    // Apply the new position
     setPosition({ x: newX, y: newY })
   }
 
@@ -171,17 +310,59 @@ export default function Dashboard() {
     setIsDragging(false)
   }
 
-  // Handle zoom changes
+  // Handle mouse down for banner dragging
+  const handleBannerMouseDown = (e) => {
+    e.preventDefault()
+    if (!bannerRef.current) return
+    
+    setIsDragging(true)
+    setStartPosition({
+      x: e.clientX - bannerPosition.x,
+      y: e.clientY - bannerPosition.y
+    })
+  }
+
+  // Handle mouse move for banner dragging
+  const handleBannerMouseMove = (e) => {
+    e.preventDefault()
+    if (!isDragging || !bannerRef.current || !bannerEditorRef.current) return
+
+    // Calculate new position
+    const newX = e.clientX - startPosition.x
+    const newY = e.clientY - startPosition.y
+    
+    // Apply the new position
+    setBannerPosition({ x: newX, y: newY })
+  }
+
+  // Handle zoom changes for logo
   const handleZoomChange = (e) => {
     setZoom(parseFloat(e.target.value))
   }
 
+  // Handle zoom changes for banner
+  const handleBannerZoomChange = (e) => {
+    setBannerZoom(parseFloat(e.target.value))
+  }
+
+  // Zoom in button handler for logo
   const handleZoomIn = () => {
     setZoom(prev => Math.min(3, prev + 0.1))
   }
 
+  // Zoom out button handler for logo
   const handleZoomOut = () => {
     setZoom(prev => Math.max(0.5, prev - 0.1))
+  }
+
+  // Zoom in button handler for banner
+  const handleBannerZoomIn = () => {
+    setBannerZoom(prev => Math.min(3, prev + 0.1))
+  }
+
+  // Zoom out button handler for banner
+  const handleBannerZoomOut = () => {
+    setBannerZoom(prev => Math.max(0.5, prev - 0.1))
   }
 
   // Save the edited logo
@@ -213,10 +394,6 @@ export default function Dashboard() {
       const imgCenterX = img.width / 2
       const imgCenterY = img.height / 2
       
-      // Calculate scaled image dimensions based on zoom
-      const scaledWidth = img.width * zoom
-      const scaledHeight = img.height * zoom
-      
       // Calculate source coordinates (where to crop from the original image)
       const sourceX = imgCenterX - (containerRect.width / 2 / zoom) + (position.x / zoom)
       const sourceY = imgCenterY - (containerRect.height / 2 / zoom) + (position.y / zoom)
@@ -235,20 +412,84 @@ export default function Dashboard() {
         const dataUrl = canvas.toDataURL('image/png')
         setLogo(dataUrl)
         setIsEditingLogo(false)
+        showNotification('Logo updated successfully')
       } catch (err) {
         console.error("Error creating logo:", err)
-        alert("Error creating logo. Please try again with a different image.")
+        showNotification('Error creating logo. Please try again with a different image.', 'error')
         setIsEditingLogo(false)
       }
     }
     
     img.onerror = () => {
       console.error("Error loading image")
-      alert("Error loading image. Please try again with a different image.")
+      showNotification('Error loading image. Please try again with a different image.', 'error')
       setIsEditingLogo(false)
     }
   }
 
+  // Save the edited banner
+  const handleSaveBannerEdit = () => {
+    if (!bannerRef.current || !bannerEditorRef.current || !bannerOriginal) {
+      console.error("Missing required elements for banner editing")
+      setIsEditingBanner(false)
+      return
+    }
+
+    // Create a canvas to render the cropped image
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    
+    // Get the container dimensions
+    const containerRect = bannerEditorRef.current.getBoundingClientRect()
+    
+    // Set canvas dimensions to match the cropping area
+    canvas.width = containerRect.width
+    canvas.height = containerRect.height
+    
+    // Create a temporary image to draw on canvas
+    const img = new Image()
+    img.crossOrigin = "anonymous"
+    img.src = bannerOriginal
+    
+    img.onload = () => {
+      // Calculate center of the image
+      const imgCenterX = img.width / 2
+      const imgCenterY = img.height / 2
+      
+      // Calculate source coordinates (where to crop from the original image)
+      const sourceX = imgCenterX - (containerRect.width / 2 / bannerZoom) + (bannerPosition.x / bannerZoom)
+      const sourceY = imgCenterY - (containerRect.height / 2 / bannerZoom) + (bannerPosition.y / bannerZoom)
+      const sourceWidth = containerRect.width / bannerZoom
+      const sourceHeight = containerRect.height / bannerZoom
+      
+      // Draw the image with proper cropping
+      ctx.drawImage(
+        img,
+        sourceX, sourceY, sourceWidth, sourceHeight,
+        0, 0, canvas.width, canvas.height
+      )
+      
+      // Convert canvas to data URL and set as banner
+      try {
+        const dataUrl = canvas.toDataURL('image/png')
+        setBanner(dataUrl)
+        setIsEditingBanner(false)
+        showNotification('Banner updated successfully')
+      } catch (err) {
+        console.error("Error creating banner:", err)
+        showNotification('Error creating banner. Please try again with a different image.', 'error')
+        setIsEditingBanner(false)
+      }
+    }
+    
+    img.onerror = () => {
+      console.error("Error loading image")
+      showNotification('Error loading image. Please try again with a different image.', 'error')
+      setIsEditingBanner(false)
+    }
+  }
+
+  // Cancel logo editing
   const handleCancelLogoEdit = () => {
     setIsEditingLogo(false)
     if (!logo) {
@@ -257,566 +498,2016 @@ export default function Dashboard() {
     }
   }
 
-  // Calculate drag constraints to keep the image within the editor
-  const calculateTransform = () => {
-    if (!imageRef.current || !imageOriginal) return ""
-    
-    return `translate(${position.x}px, ${position.y}px) scale(${zoom})`
+  // Cancel banner editing
+  const handleCancelBannerEdit = () => {
+    setIsEditingBanner(false)
+    if (!banner) {
+      // Clear the uploaded image if there was no banner before
+      setBannerOriginal(null)
+    }
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 font-sans">
-      {/* Improved Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-2">
-              <Settings className="w-6 h-6 text-gray-600" />
-              <h1 className="text-2xl font-bold text-gray-900">Theme Settings</h1>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center px-4 py-2 text-sm font-medium text-white bg-gray-700 rounded-md hover:bg-gray-800 transition-colors"
-            >
-              <LogOut className="w-4 h-4 mr-2" /> Logout
-            </button>
-          </div>
-        </div>
-      </header>
+  // Color presets for easier selection
+  const colorPresets = {
+    primary: [
+      '#DB2777', // Pink
+      '#2563EB', // Blue
+      '#10B981', // Green
+      '#F59E0B', // Yellow
+      '#EF4444', // Red
+      '#8B5CF6', // Purple
+      '#000000', // Black
+    ],
+    text: [
+      '#1F2937', // Dark gray
+      '#4B5563', // Medium gray
+      '#6B7280', // Light gray
+      '#111827', // Almost black
+      '#000000', // Black
+      '#1E3A8A', // Dark blue
+      '#7F1D1D', // Dark red
+    ],
+    background: [
+      '#FFFFFF', // White
+      '#F9FAFB', // Light gray
+      '#F3F4F6', // Slightly darker light gray
+      '#FEF3C7', // Light yellow
+      '#E0F2FE', // Light blue
+      '#F0FDF4', // Light green
+      '#FEF2F2', // Light red
+    ],
+    secondary: [
+      '#F9FAFB', // Light gray
+      '#F3F4F6', // Slightly darker light gray
+      '#E5E7EB', // Even darker light gray
+      '#FFF7ED', // Light orange
+      '#ECFDF5', // Light teal
+      '#F0F9FF', // Light sky blue
+      '#FFFBEB', // Light yellow
+    ]
+  }
 
-      {/* Logo Editor Modal */}
-      {isEditingLogo && imageOriginal && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-lg w-full overflow-hidden shadow-xl">
-            <div className="p-4 border-b border-gray-100 flex justify-between items-center">
-              <h3 className="text-lg font-medium">Edit Logo</h3>
-              <button 
-                onClick={handleCancelLogoEdit}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+  // Phone preview component
+  const PhonePreview = ({ isMini = false }) => (
+    <div className={`relative ${isMini ? 'w-56 h-96' : 'w-72 h-[600px]'} border-8 border-gray-800 rounded-3xl overflow-hidden shadow-xl mx-auto transition-all duration-300`}>
+      {/* Notch */}
+      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-24 h-5 bg-gray-800 rounded-b-lg z-20"></div>
+      
+      {/* Banner/Header */}
+      <div className="relative w-full h-32 overflow-hidden" style={{ 
+        backgroundColor: banner ? 'transparent' : colors.primary,
+        backgroundImage: banner ? `url(${banner})` : 'none',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      }}>
+        {/* Header content */}
+        <div className="absolute inset-0 pt-8 px-4">
+          <div className="flex items-center">
+            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-white/20">
+              <ArrowLeft className="w-4 h-4 text-white" />
+            </button>
             
-            <div className="p-6">
-              <div className="flex items-center justify-center mb-6">
-                <div 
-                  ref={imageEditorRef}
-                  className={`relative w-64 h-64 overflow-hidden ${logoShape === 'circle' ? 'rounded-full' : 'rounded-md'} border-2 border-gray-200`}
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                  onMouseLeave={handleMouseUp}
-                  style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
-                >
-<img 
-  ref={imageRef}
-  src={imageOriginal} 
-  alt="Logo preview" 
-  className="absolute"
-  style={{
-    transform: `translate(-50%, -50%) translate(${position.x}px, ${position.y}px) scale(${zoom})`,
-    transformOrigin: 'center',
-    left: '50%',
-    top: '50%',
-    width: 'auto',
-    height: 'auto',
-    maxWidth: 'none',
-    maxHeight: 'none',
-    cursor: isDragging ? 'grabbing' : 'grab',
-    transition: isDragging ? 'none' : 'transform 0.1s ease-out'
-  }}
-  draggable="false"
-  onDragStart={(e) => e.preventDefault()} // Prevent default drag behavior
-  onLoad={(e) => {
-    // Automatically calculate better initial zoom when image loads
-    if (imageEditorRef.current) {
-      const container = imageEditorRef.current.getBoundingClientRect()
-      const img = e.target
-      const imgRatio = img.naturalWidth / img.naturalHeight
-      const containerRatio = container.width / container.height
-      
-      // Calculate zoom to fit the entire image
-      let newZoom
-      if (imgRatio > containerRatio) {
-        // Image is wider than container
-        newZoom = container.width / img.naturalWidth * 0.8
-      } else {
-        // Image is taller than container
-        newZoom = container.height / img.naturalHeight * 0.8
-      }
-      
-      // Set the zoom (but don't zoom in beyond 1)
-      setZoom(Math.min(1, newZoom))
-    }
-  }}
-/>
-                </div>
-              </div>
-              
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-600">Zoom</span>
-                  <div className="flex space-x-2">
-                    <button 
-                      onClick={handleZoomOut}
-                      className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
-                      disabled={zoom <= 0.5}
-                    >
-                      <ZoomOut className="w-4 h-4 text-gray-700" />
-                    </button>
-                    <button 
-                      onClick={handleZoomIn}
-                      className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
-                      disabled={zoom >= 3}
-                    >
-                      <ZoomIn className="w-4 h-4 text-gray-700" />
-                    </button>
-                  </div>
-                </div>
-                <input 
-                  type="range" 
-                  min="0.5" 
-                  max="3" 
-                  step="0.01" 
-                  value={zoom}
-                  onChange={handleZoomChange}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                />
-              </div>
-              
-              <div className="mb-6">
-                <p className="text-sm text-gray-500 mb-2">
-                  Drag the image to position it perfectly. Use the zoom slider to adjust the size.
-                </p>
-              </div>
-              
-              <div className="flex space-x-3">
-                <button
-                  onClick={handleCancelLogoEdit}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveLogoEdit}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >
-                  Save
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        <div className="bg-white rounded-xl shadow-md overflow-hidden">
-          <div className="p-6 border-b border-gray-100">
-            <h2 className="text-xl font-semibold text-gray-800">Customize Your Brand</h2>
-            <p className="text-gray-500 text-sm mt-1">Adjust colors and upload your logo to match your restaurant's branding</p>
-          </div>
-
-          <div className="p-6">
-            <div className="grid gap-10 md:grid-cols-2">
-              {/* Left Column - Settings */}
-              <div className="space-y-8">
-                {/* Logo Upload Section */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Restaurant Logo
-                  </label>
-                  <div className="space-y-4">
-                    {logo ? (
-                      <div className="relative w-full max-w-xs">
-                        <div 
-                          className={`
-                            bg-gray-50 border border-gray-200 p-2 flex items-center justify-center cursor-pointer
-                            ${logoShape === 'circle' ? 'rounded-full aspect-square w-24 h-24 overflow-hidden' : 'rounded-md'}
-                          `}
-                          onClick={() => {
-                            // Edit existing logo
-                            setImageOriginal(logo)
-                            setIsEditingLogo(true)
-                          }}
-                        >
-                          <img 
-                            src={logo} 
-                            alt="Restaurant logo" 
-                            className={`
-                              ${logoShape === 'circle' 
-                                ? 'h-full w-full object-cover' 
-                                : 'max-h-24 max-w-full object-contain'}
-                            `}
-                          />
-                        </div>
-                        <button
-                          onClick={handleLogoRemove}
-                          className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600"
-                          aria-label="Remove logo"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                        <div className="mt-1 text-xs text-gray-500">
-                          Click on the logo to reposition or resize
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="border-2 border-dashed border-gray-300 rounded-md p-6 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer" onClick={() => fileInputRef.current.click()}>
-                        <Upload className="w-10 h-10 text-gray-400 mb-2" />
-                        <p className="text-sm text-gray-600 font-medium">Click to upload a logo</p>
-                        <p className="text-xs text-gray-500 mt-1">PNG, JPG, SVG up to 2MB</p>
-                      </div>
-                    )}
-                    <input 
-                      type="file" 
-                      ref={fileInputRef}
-                      onChange={handleLogoUpload} 
-                      accept="image/*" 
-                      className="hidden" 
-                    />
-                    <button
-                      onClick={() => fileInputRef.current.click()}
-                      className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-md bg-white hover:bg-gray-50 transition-colors"
-                    >
-                      {logo ? 'Change Logo' : 'Upload Logo'}
-                    </button>
-                  </div>
-
-                  {/* Logo Shape Option */}
-                  {logo && (
-                    <div className="mt-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Logo Shape
-                      </label>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => setLogoShape('circle')}
-                          className={`
-                            flex items-center px-3 py-2 rounded-md text-sm
-                            ${logoShape === 'circle' 
-                              ? 'bg-gray-200 font-medium'
-                              : 'bg-white border border-gray-300'}
-                          `}
-                        >
-                          <Circle className="w-4 h-4 mr-1" />
-                          Circle
-                        </button>
-                        <button
-                          onClick={() => setLogoShape('square')}
-                          className={`
-                            flex items-center px-3 py-2 rounded-md text-sm
-                            ${logoShape === 'square' 
-                              ? 'bg-gray-200 font-medium'
-                              : 'bg-white border border-gray-300'}
-                          `}
-                        >
-                          <Square className="w-4 h-4 mr-1" />
-                          Original
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Logo Position */}
-                  {logo && (
-                    <div className="mt-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Logo Position on Menu
-                      </label>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => setLogoPosition('left')}
-                          className={`
-                            flex items-center px-3 py-2 rounded-md text-sm
-                            ${logoPosition === 'left' 
-                              ? 'bg-gray-200 font-medium'
-                              : 'bg-white border border-gray-300'}
-                          `}
-                        >
-                          <AlignLeft className="w-4 h-4 mr-1" />
-                          Left
-                        </button>
-                        <button
-                          onClick={() => setLogoPosition('center')}
-                          className={`
-                            flex items-center px-3 py-2 rounded-md text-sm
-                            ${logoPosition === 'center' 
-                              ? 'bg-gray-200 font-medium'
-                              : 'bg-white border border-gray-300'}
-                          `}
-                        >
-                          <AlignCenter className="w-4 h-4 mr-1" />
-                          Center
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Logo Size */}
-                  {logo && (
-                    <div className="mt-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Logo Size
-                      </label>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => setLogoSize('small')}
-                          className={`
-                            px-3 py-2 rounded-md text-sm
-                            ${logoSize === 'small' 
-                              ? 'bg-gray-200 font-medium'
-                              : 'bg-white border border-gray-300'}
-                          `}
-                        >
-                          Small
-                        </button>
-                        <button
-                          onClick={() => setLogoSize('medium')}
-                          className={`
-                            px-3 py-2 rounded-md text-sm
-                            ${logoSize === 'medium' 
-                              ? 'bg-gray-200 font-medium'
-                              : 'bg-white border border-gray-300'}
-                          `}
-                        >
-                          Medium
-                        </button>
-                        <button
-                          onClick={() => setLogoSize('large')}
-                          className={`
-                            px-3 py-2 rounded-md text-sm
-                            ${logoSize === 'large' 
-                              ? 'bg-gray-200 font-medium'
-                              : 'bg-white border border-gray-300'}
-                          `}
-                        >
-                          Large
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Color Settings */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Primary Color
-                  </label>
-                  <div className="flex items-center space-x-3">
-                    <div className="relative">
-                      <input
-                        type="color"
-                        value={colors.primary}
-                        onChange={(e) => handleColorChange('primary', e.target.value)}
-                        className="h-12 w-24 cursor-pointer rounded-md border border-gray-300"
-                      />
-                      <div className="absolute -bottom-6 left-0 text-xs text-gray-500">
-                        Buttons, Headers
-                      </div>
-                    </div>
-                    <input
-                      type="text"
-                      value={colors.primary}
-                      onChange={(e) => handleColorChange('primary', e.target.value)}
-                      className="border border-gray-300 rounded-md px-3 py-2 w-40 shadow-sm focus:ring-2 focus:ring-opacity-50 focus:ring-gray-200 focus:border-gray-400 focus:outline-none"
-                      placeholder="#DB2777"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Background Color
-                  </label>
-                  <div className="flex items-center space-x-3">
-                    <div className="relative">
-                      <input
-                        type="color"
-                        value={colors.secondary}
-                        onChange={(e) => handleColorChange('secondary', e.target.value)}
-                        className="h-12 w-24 cursor-pointer rounded-md border border-gray-300"
-                      />
-                      <div className="absolute -bottom-6 left-0 text-xs text-gray-500">
-                        Page Background
-                      </div>
-                    </div>
-                    <input
-                      type="text"
-                      value={colors.secondary}
-                      onChange={(e) => handleColorChange('secondary', e.target.value)}
-                      className="border border-gray-300 rounded-md px-3 py-2 w-40 shadow-sm focus:ring-2 focus:ring-opacity-50 focus:ring-gray-200 focus:border-gray-400 focus:outline-none"
-                      placeholder="#F9FAFB"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Text Color
-                  </label>
-                  <div className="flex items-center space-x-3">
-                    <div className="relative">
-                      <input
-                        type="color"
-                        value={colors.text}
-                        onChange={(e) => handleColorChange('text', e.target.value)}
-                        className="h-12 w-24 cursor-pointer rounded-md border border-gray-300"
-                      />
-                      <div className="absolute -bottom-6 left-0 text-xs text-gray-500">
-                        Content Text
-                      </div>
-                    </div>
-                    <input
-                      type="text"
-                      value={colors.text}
-                      onChange={(e) => handleColorChange('text', e.target.value)}
-                      className="border border-gray-300 rounded-md px-3 py-2 w-40 shadow-sm focus:ring-2 focus:ring-opacity-50 focus:ring-gray-200 focus:border-gray-400 focus:outline-none"
-                      placeholder="#1F2937"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Enhanced Preview */}
-              <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                <h3 className="text-lg font-medium p-4 border-b border-gray-100">Live Preview</h3>
-                <div 
-                  className="p-6"
-                  style={{ backgroundColor: colors.secondary }}
-                >
-                  {/* Mobile menu preview with logo */}
-                  <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm mb-6">
-                    <div 
-                      className="px-4 py-3 flex items-center relative" 
-                      style={{ backgroundColor: colors.primary }}
-                    >
-                      {/* Back button */}
-                      <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                        <ArrowLeftIcon className="w-5 h-5 text-white" />
-                      </div>
-
-                      {/* Logo with position */}
-                      {logo && (
-                        <div 
-                          className={`
-                            ${logoPosition === 'left' ? 'absolute left-16' : 
-                              'absolute left-1/2 transform -translate-x-1/2'}
-                            z-10
-                          `}
-                        >
-                          <div 
-                            className={`
-                              ${logoShape === 'circle' ? 'rounded-full overflow-hidden' : ''}
-                              ${logoSize === 'small' ? 'h-8 w-8' : 
-                                logoSize === 'medium' ? 'h-10 w-10' : 
-                                'h-12 w-12'}
-                              flex items-center justify-center bg-white/20 p-1
-                            `}
-                          >
-                            <img 
-                              src={logo} 
-                              alt="Restaurant logo" 
-                              className={`
-                                ${logoShape === 'circle' ? 'h-full w-full object-cover' : 'h-full w-auto object-contain'}
-                              `}
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Search/language */}
-                      <div className="ml-auto flex">
-                        <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                          <SearchIcon className="w-5 h-5 text-white" />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Welcome text */}
-                    <div className="text-center py-2" style={{ backgroundColor: colors.primary, color: 'white' }}>
-                      <p className="font-bold">Welcome to Our Restaurant</p>
-                    </div>
-                  </div>
-
-                  {/* Menu item preview */}
-                  <div className="bg-white p-4 rounded-lg shadow-sm mb-4 border border-gray-100">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-medium" style={{ color: colors.text }}>Margherita Pizza</h4>
-                      <span style={{ color: colors.primary }} className="font-bold">$14.99</span>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-4">Fresh mozzarella, tomatoes, and basil on our signature crust</p>
-                    <div className="flex justify-end">
-                      <button
-                        className="px-4 py-2 rounded-full text-white text-sm"
-                        style={{ backgroundColor: colors.primary }}
-                      >
-                        Add to Cart
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-medium" style={{ color: colors.text }}>Tiramisu</h4>
-                      <span style={{ color: colors.primary }} className="font-bold">$8.99</span>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-4">Classic Italian dessert with espresso and mascarpone</p>
-                    <div className="flex justify-end">
-                      <button
-                        className="px-4 py-2 rounded-full text-white text-sm"
-                        style={{ backgroundColor: colors.primary }}
-                      >
-                        Add to Cart
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Improved Action Buttons */}
-          <div className="flex items-center justify-between p-6 border-t border-gray-100 bg-gray-50">
-            <button
-              onClick={handleReset}
-              className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors flex items-center space-x-2"
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              <span>Reset to Defaults</span>
-            </button>
-            <div className="flex items-center space-x-4">
-              {savedMessage && (
-                <span className="text-green-600 text-sm bg-green-50 px-3 py-1 rounded-md border border-green-100">
-                  {savedMessage}
-                </span>
-              )}
-              <button
-                onClick={handleSave}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-                style={{ backgroundColor: colors.primary }}
+            {logo && (
+              <div 
+                className={`
+                  ${logoPosition === 'left' ? 'absolute left-12' : 
+                    'absolute left-1/2 transform -translate-x-1/2'}
+                `}
               >
-                <Save className="w-4 h-4 mr-2" />
-                <span>Save Changes</span>
+                <div 
+                  className={`
+                    ${logoShape === 'circle' ? 'rounded-full overflow-hidden' : ''}
+                    ${logoSize === 'small' ? 'h-6 w-6' : 
+                      logoSize === 'medium' ? 'h-8 w-8' : 
+                      'h-10 w-10'}
+                    flex items-center justify-center bg-white/20 p-0.5
+                  `}
+                >
+                  <img 
+                    src={logo} 
+                    alt="Restaurant logo" 
+                    className={`
+                      ${logoShape === 'circle' ? 'h-full w-full object-cover' : 'h-full w-auto object-contain'}
+                    `}
+                  />
+                </div>
+              </div>
+            )}
+            
+            <div className="ml-auto flex space-x-1">
+              <button className="w-8 h-8 flex items-center justify-center rounded-full bg-white/20">
+                <Search className="w-4 h-4 text-white" />
               </button>
+              <button className="w-8 h-8 flex items-center justify-center rounded-full bg-white/20">
+                <Globe className="w-4 h-4 text-white" />
+              </button>
+            </div>
+          </div>
+          
+          <div className="text-center mt-2" style={{ color: 'white' }}>
+            <h1 className="text-sm font-bold truncate">Welcome to Restaurant Name</h1>
+            <div className="inline-block bg-white/20 px-2 py-0.5 rounded-full mt-1 text-xs">
+              Table 12
             </div>
           </div>
         </div>
       </div>
+      
+      {/* Content */}
+      <div className="h-[calc(100%-8rem)] overflow-y-auto bg-gray-100">
+        {/* Category tabs */}
+        <div className="flex overflow-x-auto px-2 py-2 space-x-2 bg-white border-b border-gray-200 hide-scrollbar">
+          {['All', 'Starters', 'Mains'].map((category, index) => (
+            <div key={index} className="flex flex-col items-center shrink-0">
+              <div 
+                className={`w-12 h-12 rounded-lg flex items-center justify-center mb-1 ${index === 0 ? 'text-white' : 'text-gray-600 bg-gray-100'}`}
+                style={{ backgroundColor: index === 0 ? colors.primary : '' }}
+              >
+                <Coffee className="w-4 h-4" />
+              </div>
+              <span className={`text-[10px] ${index === 0 ? 'font-medium text-gray-900' : 'text-gray-600'}`}>
+                {category}
+              </span>
+            </div>
+          ))}
+        </div>
+        
+        {/* Menu items */}
+        <div className="p-2 space-y-2">
+          {[1, 2].map((item) => (
+            <div key={item} className="bg-white p-3 rounded-lg shadow-sm">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-medium text-sm" style={{ color: colors.text }}>Margherita Pizza</h3>
+                  <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">Fresh mozzarella, tomatoes, and basil</p>
+                </div>
+                <span className="font-bold text-sm" style={{ color: colors.primary }}>$14.99</span>
+              </div>
+              <div className="flex justify-end mt-2">
+                <button
+                  className="px-3 py-1 rounded-full text-white text-xs"
+                  style={{ backgroundColor: colors.primary }}
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {/* Bottom floating button */}
+      <div className="absolute bottom-4 right-4">
+        <button 
+          className="flex items-center px-3 py-2 rounded-full shadow-lg"
+          style={{ backgroundColor: colors.primary }}
+        >
+          <ShoppingBag className="w-4 h-4 text-white" />
+          <span className="ml-1 text-xs text-white font-medium">$0.00</span>
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-50 font-sans">
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {showToast && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 ${
+              toastType === 'success' ? 'bg-green-100 text-green-800 border border-green-200' : 
+              toastType === 'error' ? 'bg-red-100 text-red-800 border border-red-200' : 
+              'bg-blue-100 text-blue-800 border border-blue-200'
+            }`}
+          >
+            {toastType === 'success' && <Check className="w-5 h-5" />}
+            {toastType === 'error' && <X className="w-5 h-5" />}
+            {toastType === 'info' && <Info className="w-5 h-5" />}
+            <p className="font-medium">{toastMessage}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Logo Editor Modal */}
+      <AnimatePresence>
+        {isEditingLogo && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-75 z-50"
+              onClick={handleCancelLogoEdit}
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-white rounded-xl max-w-lg w-full overflow-hidden shadow-xl">
+                <div className="p-4 border-b border-gray-100 flex justify-between items-center">
+                  <h3 className="text-lg font-medium">Customize Logo</h3>
+                  <button 
+                    onClick={handleCancelLogoEdit}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                
+                <div className="p-6">
+                  <div className="flex items-center justify-center mb-6">
+                    <div 
+                      ref={imageEditorRef}
+                      className={`relative w-64 h-64 overflow-hidden ${logoShape === 'circle' ? 'rounded-full' : 'rounded-lg'} border-2 border-gray-200 shadow-inner`}
+                      onMouseDown={handleMouseDown}
+                      onMouseMove={handleMouseMove}
+                      onMouseUp={handleMouseUp}
+                      onMouseLeave={handleMouseUp}
+                      style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+                    >
+                      {imageOriginal && (
+                        <img 
+                          ref={imageRef}
+                          src={imageOriginal} 
+                          alt="Logo preview" 
+                          className="absolute"
+                          style={{
+                            transform: `translate(-50%, -50%) translate(${position.x}px, ${position.y}px) scale(${zoom})`,
+                            transformOrigin: 'center',
+                            left: '50%',
+                            top: '50%',
+                            width: 'auto',
+                            height: 'auto',
+                            maxWidth: 'none',
+                            maxHeight: 'none',
+                            cursor: isDragging ? 'grabbing' : 'grab',
+                            transition: isDragging ? 'none' : 'transform 0.1s ease-out'
+                          }}
+                          draggable="false"
+                          onDragStart={(e) => e.preventDefault()}
+                          onLoad={(e) => {
+                            // Automatically calculate better initial zoom when image loads
+                            if (imageEditorRef.current) {
+                              const container = imageEditorRef.current.getBoundingClientRect()
+                              const img = e.target
+                              const imgRatio = img.naturalWidth / img.naturalHeight
+                              const containerRatio = container.width / container.height
+                              
+                              // Calculate zoom to fit the entire image
+                              let newZoom
+                              if (imgRatio > containerRatio) {
+                                // Image is wider than container
+                                newZoom = container.width / img.naturalWidth * 0.8
+                              } else {
+                                // Image is taller than container
+                                newZoom = container.height / img.naturalHeight * 0.8
+                              }
+                              
+                              // Set the zoom (but don't zoom in beyond 1)
+                              setZoom(Math.min(1, newZoom))
+                            }
+                          }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-gray-600">Zoom</span>
+                      <div className="flex space-x-2">
+                        <button 
+                          onClick={handleZoomOut}
+                          className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                          disabled={zoom <= 0.5}
+                        >
+                          <ZoomOut className="w-4 h-4 text-gray-700" />
+                        </button>
+                        <button 
+                          onClick={handleZoomIn}
+                          className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                          disabled={zoom >= 3}
+                        >
+                          <ZoomIn className="w-4 h-4 text-gray-700" />
+                        </button>
+                      </div>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="0.5" 
+                      max="3" 
+                      step="0.01" 
+                      value={zoom}
+                      onChange={handleZoomChange}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                  </div>
+                  
+                  <div className="mb-6">
+                    <div className="flex mb-3 space-x-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-2">Shape</p>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => setLogoShape('circle')}
+                            className={`flex items-center px-3 py-2 rounded-md text-sm ${
+                              logoShape === 'circle' 
+                                ? 'bg-blue-50 text-blue-700 border border-blue-200 font-medium'
+                                : 'bg-white border border-gray-300 text-gray-700'
+                            }`}
+                          >
+                            <Circle className="w-4 h-4 mr-1" />
+                            Circle
+                          </button>
+                          <button
+                            onClick={() => setLogoShape('square')}
+                            className={`flex items-center px-3 py-2 rounded-md text-sm ${
+                              logoShape === 'square' 
+                                ? 'bg-blue-50 text-blue-700 border border-blue-200 font-medium'
+                                : 'bg-white border border-gray-300 text-gray-700'
+                            }`}
+                          >
+                            <Square className="w-4 h-4 mr-1" />
+                            Original
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-500">
+                      <Info className="w-4 h-4 inline mr-1" />
+                      Drag to position. Use zoom to adjust size.
+                    </p>
+                  </div>
+                  
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={handleCancelLogoEdit}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveLogoEdit}
+                      className="flex-1 px-4 py-2 text-white rounded-md transition-colors"
+                      style={{ backgroundColor: colors.primary }}
+                    >
+                      Save Logo
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Banner Editor Modal */}
+      <AnimatePresence>
+        {isEditingBanner && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-75 z-50"
+              onClick={handleCancelBannerEdit}
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-white rounded-xl max-w-lg w-full overflow-hidden shadow-xl">
+                <div className="p-4 border-b border-gray-100 flex justify-between items-center">
+                  <h3 className="text-lg font-medium">Customize Banner</h3>
+                  <button 
+                    onClick={handleCancelBannerEdit}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                
+                <div className="p-6">
+                  <div className="flex items-center justify-center mb-6">
+                    <div 
+                      ref={bannerEditorRef}
+                      className="relative w-full h-32 overflow-hidden rounded-lg border-2 border-gray-200 shadow-inner"
+                      onMouseDown={handleBannerMouseDown}
+                      onMouseMove={handleBannerMouseMove}
+                      onMouseUp={handleMouseUp}
+                      onMouseLeave={handleMouseUp}
+                      style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+                    >
+                      {bannerOriginal && (
+                        <img 
+                          ref={bannerRef}
+                          src={bannerOriginal} 
+                          alt="Banner preview" 
+                          className="absolute"
+                          style={{
+                            transform: `translate(-50%, -50%) translate(${bannerPosition.x}px, ${bannerPosition.y}px) scale(${bannerZoom})`,
+                            transformOrigin: 'center',
+                            left: '50%',
+                            top: '50%',
+                            width: 'auto',
+                            height: 'auto',
+                            maxWidth: 'none',
+                            maxHeight: 'none',
+                            cursor: isDragging ? 'grabbing' : 'grab',
+                            transition: isDragging ? 'none' : 'transform 0.1s ease-out'
+                          }}
+                          draggable="false"
+                          onDragStart={(e) => e.preventDefault()}
+                          onLoad={(e) => {
+                            // Automatically calculate better initial zoom when image loads
+                            if (bannerEditorRef.current) {
+                              const container = bannerEditorRef.current.getBoundingClientRect()
+                              const img = e.target
+                              const imgRatio = img.naturalWidth / img.naturalHeight
+                              const containerRatio = container.width / container.height
+                              
+                              // Calculate zoom to fit the entire image
+                              let newZoom
+                              if (imgRatio > containerRatio) {
+                                // Image is wider than container
+                                newZoom = container.height / img.naturalHeight * 0.8
+                              } else {
+                                // Image is taller than container
+                                newZoom = container.width / img.naturalWidth * 0.8
+                              }
+                              
+                              // Set the zoom (but don't zoom in beyond 1)
+                              setBannerZoom(Math.min(1, newZoom))
+                            }
+                          }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-gray-600">Zoom</span>
+                      <div className="flex space-x-2">
+                        <button 
+                          onClick={handleBannerZoomOut}
+                          className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                          disabled={bannerZoom <= 0.5}
+                        >
+                          <ZoomOut className="w-4 h-4 text-gray-700" />
+                        </button>
+                        <button 
+                          onClick={handleBannerZoomIn}
+                          className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                          disabled={bannerZoom >= 3}
+                        >
+                          <ZoomIn className="w-4 h-4 text-gray-700" />
+                        </button>
+                      </div>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="0.5" 
+                      max="3" 
+                      step="0.01" 
+                      value={bannerZoom}
+                      onChange={handleBannerZoomChange}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                  </div>
+                  
+                  <div className="mb-6">
+                    <p className="text-sm text-gray-500">
+                      <Info className="w-4 h-4 inline mr-1" />
+                      Drag to position. Use zoom to adjust size. The banner will replace the header background color.
+                    </p>
+                  </div>
+                  
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={handleCancelBannerEdit}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveBannerEdit}
+                      className="flex-1 px-4 py-2 text-white rounded-md transition-colors"
+                      style={{ backgroundColor: colors.primary }}
+                    >
+                      Save Banner
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
+        <div className="max-w-full px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="p-2 rounded-md text-gray-400 lg:hidden hover:text-gray-500 hover:bg-gray-100 focus:outline-none"
+              >
+                <MenuIcon className="h-6 w-6" />
+              </button>
+              <div className="flex items-center space-x-3">
+                <div 
+                  className="bg-gradient-to-r from-pink-500 to-purple-500 text-white p-2 rounded-lg shadow-md"
+                  style={{ 
+                    background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primary}99 100%)`
+                  }}
+                >
+                  <Coffee className="h-6 w-6" />
+                </div>
+                <h1 className="text-xl font-bold text-gray-900">QR Menu Dashboard</h1>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-4">
+              {unsavedChanges && (
+                <span className="text-sm text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 animate-pulse">
+                  Unsaved changes
+                </span>
+              )}
+              <button
+                onClick={handleSave}
+                className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                  unsavedChanges 
+                    ? 'text-white focus:ring-blue-500 hover:opacity-90'
+                    : 'text-gray-700 bg-gray-100 hover:bg-gray-200 focus:ring-gray-500'
+                }`}
+                style={{ backgroundColor: unsavedChanges ? colors.primary : '' }}
+                disabled={!unsavedChanges}
+              >
+                <Save className="w-4 h-4 mr-2" /> Save Changes
+              </button>
+              <div className="relative">
+                <button
+                  onClick={handleLogout}
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex h-[calc(100vh-64px)]">
+        {/* Sidebar */}
+        <AnimatePresence>
+          {sidebarOpen && (
+            <motion.aside
+              initial={{ x: -280, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -280, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white border-r border-gray-200 w-64 fixed inset-y-16 z-30 lg:relative lg:inset-y-0"
+            >
+              <div className="h-full flex flex-col">
+                <nav className="flex-1 py-6 px-4">
+                  <ul className="space-y-2">
+                    <li>
+                      <button
+                        onClick={() => setActiveSection('dashboard')}
+                        className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                          activeSection === 'dashboard'
+                            ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-100'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <Home className="w-5 h-5 mr-3" />
+                        Dashboard
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        onClick={() => setActiveSection('branding')}
+                        className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                          activeSection === 'branding'
+                            ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-100'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <Image className="w-5 h-5 mr-3" />
+                        Logo & Banner
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        onClick={() => setActiveSection('colors')}
+                        className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                          activeSection === 'colors'
+                            ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-100'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <Palette className="w-5 h-5 mr-3" />
+                        Colors & Theme
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        onClick={() => setActiveSection('preview')}
+                        className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                          activeSection === 'preview'
+                            ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-100'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <Eye className="w-5 h-5 mr-3" />
+                        Preview
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        onClick={() => setActiveSection('settings')}
+                        className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                          activeSection === 'settings'
+                            ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-100'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <Settings className="w-5 h-5 mr-3" />
+                        Settings
+                      </button>
+                    </li>
+                  </ul>
+                </nav>
+                
+                {/* Current theme info */}
+                {activeSection !== 'dashboard' && (
+                  <div className="p-4 border-t border-gray-100">
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Current Theme</h3>
+                      <div className="flex space-x-2 items-center mb-2">
+                        <div className="w-5 h-5 rounded-full" style={{ backgroundColor: colors.primary }}></div>
+                        <span className="text-xs text-gray-600">Primary</span>
+                      </div>
+                      <div className="flex space-x-2 items-center">
+                        {logo ? (
+                          <div className="w-5 h-5 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                            <img src={logo} alt="Logo" className="h-4 w-4 object-cover" />
+                          </div>
+                        ) : (
+                          <div className="w-5 h-5 bg-gray-200 rounded-full flex items-center justify-center">
+                            <X className="h-3 w-3 text-gray-400" />
+                          </div>
+                        )}
+                        <span className="text-xs text-gray-600">Logo</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="p-4 border-t border-gray-200">
+                  <button
+                    onClick={handleReset}
+                    className="flex items-center w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Reset to Defaults
+                  </button>
+                </div>
+              </div>
+            </motion.aside>
+          )}
+        </AnimatePresence>
+
+        {/* Mobile sidebar backdrop */}
+        <AnimatePresence>
+          {sidebarOpen && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Main content */}
+        <main 
+          className={`flex-1 overflow-auto transition-all duration-300 ease-in-out ${
+            sidebarOpen ? 'lg:ml-0' : ''
+          }`}
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            
+            {/* Dashboard content */}
+            {activeSection === 'dashboard' && (
+              <div className="space-y-6">
+                <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                  <div className="p-6 bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+                    <h2 className="text-2xl font-bold mb-2">Welcome to Your QR Menu Dashboard</h2>
+                    <p className="opacity-90">Customize your restaurant's digital menu experience from here.</p>
+                  </div>
+
+                  <div className="p-6">
+                    <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl p-5 border border-blue-200 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 bg-blue-500 text-white">
+                          <Image className="w-6 h-6" />
+                        </div>
+                        <h3 className="font-semibold text-lg text-gray-800 mb-2">Logo & Banner</h3>
+                        <p className="text-gray-600 text-sm mb-4">Update your restaurant's branding and visual identity</p>
+                        <button
+                          onClick={() => setActiveSection('branding')}
+                          className="text-blue-600 text-sm font-medium hover:text-blue-800 transition-colors flex items-center"
+                        >
+                          Edit branding <ChevronRight className="w-4 h-4 ml-1" />
+                        </button>
+                      </div>
+                      
+                      <div className="bg-gradient-to-br from-purple-50 to-fuchsia-100 rounded-xl p-5 border border-purple-200 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 bg-purple-500 text-white">
+                          <Palette className="w-6 h-6" />
+                        </div>
+                        <h3 className="font-semibold text-lg text-gray-800 mb-2">Color Theme</h3>
+                        <p className="text-gray-600 text-sm mb-4">Change colors to match your restaurant's brand</p>
+                        <button
+                          onClick={() => setActiveSection('colors')}
+                          className="text-purple-600 text-sm font-medium hover:text-purple-800 transition-colors flex items-center"
+                        >
+                          Manage colors <ChevronRight className="w-4 h-4 ml-1" />
+                        </button>
+                      </div>
+                      
+                      <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-xl p-5 border border-green-200 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 bg-green-500 text-white">
+                          <Eye className="w-6 h-6" />
+                        </div>
+                        <h3 className="font-semibold text-lg text-gray-800 mb-2">Preview</h3>
+                        <p className="text-gray-600 text-sm mb-4">See how your digital menu looks to customers</p>
+                        <button
+                          onClick={() => setActiveSection('preview')}
+                          className="text-green-600 text-sm font-medium hover:text-green-800 transition-colors flex items-center"
+                        >
+                          View preview <ChevronRight className="w-4 h-4 ml-1" />
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-10">
+                      <h3 className="font-semibold text-lg text-gray-800 mb-4">Quick Actions</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <button
+                          onClick={() => {
+                            setActiveSection('branding');
+                            setTimeout(() => logoInputRef.current?.click(), 500);
+                          }}
+                          className="flex items-center justify-center bg-white p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                        >
+                          <Upload className="w-5 h-5 mr-2 text-gray-500" />
+                          <span className="text-gray-700">Upload Logo</span>
+                        </button>
+                        
+                        <button
+                          onClick={() => navigate('/menu')}
+                          className="flex items-center justify-center bg-white p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                        >
+                          <Eye className="w-5 h-5 mr-2 text-gray-500" />
+                          <span className="text-gray-700">View Menu</span>
+                        </button>
+                        
+                        <button
+                          onClick={handleSave}
+                          className={`flex items-center justify-center p-4 rounded-lg border ${
+                            unsavedChanges
+                              ? 'border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700'
+                              : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-700'
+                          } transition-colors`}
+                          disabled={!unsavedChanges}
+                        >
+                          <Save className={`w-5 h-5 mr-2 ${unsavedChanges ? 'text-blue-600' : 'text-gray-500'}`} />
+                          <span>Save Changes</span>
+                        </button>
+                        
+                        <button
+                          onClick={handleReset}
+                          className="flex items-center justify-center bg-white p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                        >
+                          <RefreshCw className="w-5 h-5 mr-2 text-gray-500" />
+                          <span className="text-gray-700">Reset Theme</span>
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {/* Recent activity or stats section */}
+                    <div className="mt-10">
+                      <h3 className="font-semibold text-lg text-gray-800 mb-4">Theme Status</h3>
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <div className="flex flex-wrap gap-4">
+                          <div className="flex-1 min-w-[200px]">
+                            <div className="text-sm text-gray-500 mb-1">Primary Color</div>
+                            <div className="flex items-center">
+                              <div className="w-4 h-4 rounded-full mr-2" style={{ backgroundColor: colors.primary }}></div>
+                              <span className="font-mono text-sm">{colors.primary}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex-1 min-w-[200px]">
+                            <div className="text-sm text-gray-500 mb-1">Logo</div>
+                            <div className="flex items-center">
+                              {logo ? (
+                                <>
+                                  <div className="w-6 h-6 mr-2 border border-gray-200 rounded-full overflow-hidden bg-white">
+                                    <img src={logo} alt="Logo" className="w-full h-full object-contain" />
+                                  </div>
+                                  <span className="text-sm text-gray-700">Uploaded</span>
+                                </>
+                              ) : (
+                                <span className="text-sm text-gray-400">Not set</span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="flex-1 min-w-[200px]">
+                            <div className="text-sm text-gray-500 mb-1">Banner</div>
+                            <div className="flex items-center">
+                              {banner ? (
+                                <>
+                                  <div className="w-10 h-6 mr-2 border border-gray-200 rounded overflow-hidden bg-white">
+                                    <img src={banner} alt="Banner" className="w-full h-full object-cover" />
+                                  </div>
+                                  <span className="text-sm text-gray-700">Uploaded</span>
+                                </>
+                              ) : (
+                                <span className="text-sm text-gray-400">Using primary color</span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="flex-1 min-w-[200px]">
+                            <div className="text-sm text-gray-500 mb-1">Status</div>
+                            <div className="flex items-center">
+                              <div className={`w-2 h-2 rounded-full mr-2 ${unsavedChanges ? 'bg-amber-500' : 'bg-green-500'}`}></div>
+                              <span className="text-sm">{unsavedChanges ? 'Unsaved changes' : 'Up to date'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Branding & Logo Section */}
+            {activeSection === 'branding' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2 space-y-6">
+                    {/* Logo Upload Section */}
+                    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                      <div className="p-6 border-b border-gray-100">
+                        <h2 className="text-xl font-semibold text-gray-800">Logo</h2>
+                        <p className="text-gray-500 text-sm mt-1">Upload and customize your restaurant's logo</p>
+                      </div>
+
+                      <div className="p-6">
+                        <div className="space-y-6">
+                          <div className="space-y-4">
+                            {logo ? (
+                              <div className="relative w-full max-w-xs">
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 flex items-center justify-center">
+                                  <div 
+                                    className={`
+                                      flex items-center justify-center cursor-pointer
+                                      ${logoShape === 'circle' 
+                                        ? 'rounded-full aspect-square w-24 h-24 overflow-hidden' 
+                                        : 'rounded-md'}
+                                    `}
+                                    onClick={() => {
+                                      // Edit existing logo
+                                      setImageOriginal(logo)
+                                      setIsEditingLogo(true)
+                                    }}
+                                  >
+                                    <img 
+                                      src={logo} 
+                                      alt="Restaurant logo" 
+                                      className={`
+                                        ${logoShape === 'circle' 
+                                          ? 'h-full w-full object-cover' 
+                                          : 'max-h-24 max-w-full object-contain'}
+                                      `}
+                                    />
+                                  </div>
+                                  <button
+                                    onClick={handleLogoRemove}
+                                    className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
+                                    aria-label="Remove logo"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </div>
+                                <div className="mt-2 text-xs text-blue-600">
+                                  Click on the logo to edit
+                                </div>
+                              </div>
+                            ) : (
+                              <div 
+                                className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer" 
+                                onClick={() => logoInputRef.current.click()}
+                              >
+                                <div className="w-14 h-14 mb-3 rounded-full bg-blue-100 flex items-center justify-center">
+                                  <Upload className="w-6 h-6 text-blue-500" />
+                                </div>
+                                <p className="text-sm text-gray-600 font-medium">Upload a logo for your restaurant</p>
+                                <p className="text-xs text-gray-500 mt-1">PNG, JPG, SVG up to 2MB</p>
+                              </div>
+                            )}
+                            <input 
+                              type="file" 
+                              ref={logoInputRef}
+                              onChange={handleLogoUpload} 
+                              accept="image/*" 
+                              className="hidden" 
+                            />
+                            <button
+                              onClick={() => logoInputRef.current.click()}
+                              className="inline-flex items-center px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-md bg-white hover:bg-gray-50 transition-colors"
+                            >
+                              {logo ? 'Change Logo' : 'Upload Logo'}
+                            </button>
+                          </div>
+
+                          {/* Logo Shape Option */}
+                          {logo && (
+                            <div className="mt-8">
+                              <label className="block text-sm font-medium text-gray-700 mb-3">
+                                Logo Shape
+                              </label>
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={() => setLogoShape('circle')}
+                                  className={`
+                                    flex items-center px-3 py-2 rounded-md text-sm
+                                    ${logoShape === 'circle' 
+                                      ? 'bg-blue-50 text-blue-700 border border-blue-200 font-medium'
+                                      : 'bg-white border border-gray-300 text-gray-700'}
+                                  `}
+                                >
+                                  <Circle className="w-4 h-4 mr-1" />
+                                  Circle
+                                </button>
+                                <button
+                                  onClick={() => setLogoShape('square')}
+                                  className={`
+                                    flex items-center px-3 py-2 rounded-md text-sm
+                                    ${logoShape === 'square' 
+                                      ? 'bg-blue-50 text-blue-700 border border-blue-200 font-medium'
+                                      : 'bg-white border border-gray-300 text-gray-700'}
+                                  `}
+                                >
+                                  <Square className="w-4 h-4 mr-1" />
+                                  Original
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Logo Position */}
+                          {logo && (
+                            <div className="mt-6">
+                              <label className="block text-sm font-medium text-gray-700 mb-3">
+                                Logo Position on Menu
+                              </label>
+                              <div className="flex space-x-3">
+                                <button
+                                  onClick={() => setLogoPosition('left')}
+                                  className={`
+                                    flex items-center px-3 py-2 rounded-md text-sm
+                                    ${logoPosition === 'left' 
+                                      ? 'bg-blue-50 text-blue-700 border border-blue-200 font-medium'
+                                      : 'bg-white border border-gray-300 text-gray-700'}
+                                  `}
+                                >
+                                  <AlignLeft className="w-4 h-4 mr-1" />
+                                  Left
+                                </button>
+                                <button
+                                  onClick={() => setLogoPosition('center')}
+                                  className={`
+                                    flex items-center px-3 py-2 rounded-md text-sm
+                                    ${logoPosition === 'center' 
+                                      ? 'bg-blue-50 text-blue-700 border border-blue-200 font-medium'
+                                      : 'bg-white border border-gray-300 text-gray-700'}
+                                  `}
+                                >
+                                  <AlignCenter className="w-4 h-4 mr-1" />
+                                  Center
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Logo Size */}
+                          {logo && (
+                            <div className="mt-6">
+                              <label className="block text-sm font-medium text-gray-700 mb-3">
+                                Logo Size
+                              </label>
+                              <div className="flex space-x-3">
+                                <button
+                                  onClick={() => setLogoSize('small')}
+                                  className={`
+                                    px-4 py-2 rounded-md text-sm
+                                    ${logoSize === 'small' 
+                                      ? 'bg-blue-50 text-blue-700 border border-blue-200 font-medium'
+                                      : 'bg-white border border-gray-300 text-gray-700'}
+                                  `}
+                                >
+                                  Small
+                                </button>
+                                <button
+                                  onClick={() => setLogoSize('medium')}
+                                  className={`
+                                    px-4 py-2 rounded-md text-sm
+                                    ${logoSize === 'medium' 
+                                      ? 'bg-blue-50 text-blue-700 border border-blue-200 font-medium'
+                                      : 'bg-white border border-gray-300 text-gray-700'}
+                                  `}
+                                >
+                                  Medium
+                                </button>
+                                <button
+                                  onClick={() => setLogoSize('large')}
+                                  className={`
+                                    px-4 py-2 rounded-md text-sm
+                                    ${logoSize === 'large' 
+                                      ? 'bg-blue-50 text-blue-700 border border-blue-200 font-medium'
+                                      : 'bg-white border border-gray-300 text-gray-700'}
+                                  `}
+                                >
+                                  Large
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Banner Upload Section */}
+                    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                      <div className="p-6 border-b border-gray-100">
+                        <h2 className="text-xl font-semibold text-gray-800">Header Banner</h2>
+                        <p className="text-gray-500 text-sm mt-1">Upload a banner image to replace the header background color</p>
+                      </div>
+
+                      <div className="p-6">
+                        <div className="space-y-6">
+                          <div className="space-y-4">
+                            {banner ? (
+                              <div className="relative w-full max-w-md">
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-center">
+                                  <div 
+                                    className="w-full h-32 cursor-pointer overflow-hidden rounded-md"
+                                    onClick={() => {
+                                      // Edit existing banner
+                                      setBannerOriginal(banner)
+                                      setIsEditingBanner(true)
+                                    }}
+                                  >
+                                    <img 
+                                      src={banner} 
+                                      alt="Header banner" 
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                  <button
+                                    onClick={handleBannerRemove}
+                                    className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
+                                    aria-label="Remove banner"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </div>
+                                <div className="mt-2 text-xs text-blue-600">
+                                  Click on the banner to edit
+                                </div>
+                              </div>
+                            ) : (
+                              <div 
+                                className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer h-32" 
+                                onClick={() => bannerInputRef.current.click()}
+                              >
+                                <div className="h-12 w-12 rounded-lg bg-blue-100 flex items-center justify-center mb-2">
+                                  <Image className="w-6 h-6 text-blue-500" />
+                                </div>
+                                <p className="text-sm text-gray-600 font-medium">Upload a header banner image</p>
+                                <p className="text-xs text-gray-500 mt-1">Will replace the header background color</p>
+                              </div>
+                            )}
+                            <input 
+                              type="file" 
+                              ref={bannerInputRef}
+                              onChange={handleBannerUpload} 
+                              accept="image/*" 
+                              className="hidden" 
+                            />
+                            <button
+                              onClick={() => bannerInputRef.current.click()}
+                              className="inline-flex items-center px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-md bg-white hover:bg-gray-50 transition-colors"
+                            >
+                              {banner ? 'Change Banner' : 'Upload Banner'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Phone Preview */}
+                  <div className="flex justify-center">
+                    <div className="bg-white rounded-xl shadow-sm overflow-hidden p-6 border border-gray-200">
+                      <h3 className="text-lg font-medium text-center mb-6">Real-time Preview</h3>
+                      <PhonePreview />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Colors & Theme Section */}
+            {activeSection === 'colors' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2">
+                    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                      <div className="p-6 border-b border-gray-100">
+                        <h2 className="text-xl font-semibold text-gray-800">Color Theme</h2>
+                        <p className="text-gray-500 text-sm mt-1">Customize your restaurant's color scheme</p>
+                      </div>
+
+                      <div className="p-6">
+                        <div className="grid gap-8 md:grid-cols-2">
+                          <div className="space-y-8">
+                            {/* Primary Color */}
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Primary Color
+                                <span className="ml-2 text-xs text-gray-500">(Used for buttons, highlighted elements)</span>
+                              </label>
+                              <div className="flex items-center space-x-3">
+                                <div
+                                  className="relative overflow-hidden rounded-md border border-gray-300 h-10 w-20 cursor-pointer shadow-inner"
+                                  onClick={() => colorPickerRefs.current.primary.click()}
+                                >
+                                  <div
+                                    className="h-full w-full"
+                                    style={{ backgroundColor: colors.primary }}
+                                  />
+                                  <input
+                                    ref={el => colorPickerRefs.current.primary = el}
+                                    type="color"
+                                    value={colors.primary}
+                                    onChange={(e) => handleColorChange('primary', e.target.value)}
+                                    className="absolute inset-0 opacity-0 cursor-pointer h-full w-full"
+                                  />
+                                </div>
+                                <input
+                                  type="text"
+                                  value={colors.primary}
+                                  onChange={(e) => handleColorChange('primary', e.target.value)}
+                                  className="border border-gray-300 rounded-md px-3 py-2 text-sm w-40 shadow-sm focus:ring-2 focus:ring-opacity-50 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
+                                  placeholder="#DB2777"
+                                />
+                              </div>
+                              
+                              {/* Color presets */}
+                              <div className="mt-3">
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  {colorPresets.primary.map((color) => (
+                                    <button
+                                      key={color}
+                                      onClick={() => handleColorChange('primary', color)}
+                                      className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow"
+                                      style={{ backgroundColor: color }}
+                                      aria-label={`Set primary color to ${color}`}
+                                    >
+                                      {colors.primary.toLowerCase() === color.toLowerCase() && (
+                                        <Check className="w-4 h-4 text-white" />
+                                      )}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Text Color */}
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Text Color
+                                <span className="ml-2 text-xs text-gray-500">(Main text content)</span>
+                              </label>
+                              <div className="flex items-center space-x-3">
+                                <div
+                                  className="relative overflow-hidden rounded-md border border-gray-300 h-10 w-20 cursor-pointer shadow-inner"
+                                  onClick={() => colorPickerRefs.current.text.click()}
+                                >
+                                  <div
+                                    className="h-full w-full"
+                                    style={{ backgroundColor: colors.text }}
+                                  />
+                                  <input
+                                    ref={el => colorPickerRefs.current.text = el}
+                                    type="color"
+                                    value={colors.text}
+                                    onChange={(e) => handleColorChange('text', e.target.value)}
+                                    className="absolute inset-0 opacity-0 cursor-pointer h-full w-full"
+                                  />
+                                </div>
+                                <input
+                                  type="text"
+                                  value={colors.text}
+                                  onChange={(e) => handleColorChange('text', e.target.value)}
+                                  className="border border-gray-300 rounded-md px-3 py-2 text-sm w-40 shadow-sm focus:ring-2 focus:ring-opacity-50 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
+                                  placeholder="#1F2937"
+                                />
+                              </div>
+                              
+                              {/* Color presets */}
+                              <div className="mt-3">
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  {colorPresets.text.map((color) => (
+                                    <button
+                                      key={color}
+                                      onClick={() => handleColorChange('text', color)}
+                                      className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow"
+                                      style={{ backgroundColor: color }}
+                                      aria-label={`Set text color to ${color}`}
+                                    >
+                                      {colors.text.toLowerCase() === color.toLowerCase() && (
+                                        <Check className="w-4 h-4 text-white" />
+                                      )}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-8">
+                            {/* Background Color */}
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Background Color
+                                <span className="ml-2 text-xs text-gray-500">(Page background)</span>
+                              </label>
+                              <div className="flex items-center space-x-3">
+                                <div
+                                  className="relative overflow-hidden rounded-md border border-gray-300 h-10 w-20 cursor-pointer shadow-inner"
+                                  onClick={() => colorPickerRefs.current.background.click()}
+                                >
+                                  <div
+                                    className="h-full w-full"
+                                    style={{ backgroundColor: colors.background }}
+                                  />
+                                  <input
+                                    ref={el => colorPickerRefs.current.background = el}
+                                    type="color"
+                                    value={colors.background}
+                                    onChange={(e) => handleColorChange('background', e.target.value)}
+                                    className="absolute inset-0 opacity-0 cursor-pointer h-full w-full"
+                                  />
+                                </div>
+                                <input
+                                  type="text"
+                                  value={colors.background}
+                                  onChange={(e) => handleColorChange('background', e.target.value)}
+                                  className="border border-gray-300 rounded-md px-3 py-2 text-sm w-40 shadow-sm focus:ring-2 focus:ring-opacity-50 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
+                                  placeholder="#FFFFFF"
+                                />
+                              </div>
+                              
+                              {/* Color presets */}
+                              <div className="mt-3">
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  {colorPresets.background.map((color) => (
+                                    <button
+                                      key={color}
+                                      onClick={() => handleColorChange('background', color)}
+                                      className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow"
+                                      style={{ backgroundColor: color }}
+                                      aria-label={`Set background color to ${color}`}
+                                    >
+                                      {colors.background.toLowerCase() === color.toLowerCase() && (
+                                        <Check className="w-4 h-4 text-gray-700" />
+                                      )}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Secondary Color */}
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Secondary Background
+                                <span className="ml-2 text-xs text-gray-500">(Card backgrounds, secondary elements)</span>
+                              </label>
+                              <div className="flex items-center space-x-3">
+                                <div
+                                  className="relative overflow-hidden rounded-md border border-gray-300 h-10 w-20 cursor-pointer shadow-inner"
+                                  onClick={() => colorPickerRefs.current.secondary.click()}
+                                >
+                                  <div
+                                    className="h-full w-full"
+                                    style={{ backgroundColor: colors.secondary }}
+                                  />
+                                  <input
+                                    ref={el => colorPickerRefs.current.secondary = el}
+                                    type="color"
+                                    value={colors.secondary}
+                                    onChange={(e) => handleColorChange('secondary', e.target.value)}
+                                    className="absolute inset-0 opacity-0 cursor-pointer h-full w-full"
+                                  />
+                                </div>
+                                <input
+                                  type="text"
+                                  value={colors.secondary}
+                                  onChange={(e) => handleColorChange('secondary', e.target.value)}
+                                  className="border border-gray-300 rounded-md px-3 py-2 text-sm w-40 shadow-sm focus:ring-2 focus:ring-opacity-50 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
+                                  placeholder="#F9FAFB"
+                                />
+                              </div>
+                              
+                              {/* Color presets */}
+                              <div className="mt-3">
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  {colorPresets.secondary.map((color) => (
+                                    <button
+                                      key={color}
+                                      onClick={() => handleColorChange('secondary', color)}
+                                      className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow"
+                                      style={{ backgroundColor: color }}
+                                      aria-label={`Set secondary color to ${color}`}
+                                    >
+                                      {colors.secondary.toLowerCase() === color.toLowerCase() && (
+                                        <Check className="w-4 h-4 text-gray-700" />
+                                      )}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Color Presets */}
+                        <div className="mt-10">
+                          <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Color Themes</h3>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <button
+                              onClick={() => {
+                                setColors({
+                                  ...colors,
+                                  primary: '#DB2777',
+                                  text: '#1F2937',
+                                  background: '#FFFFFF',
+                                  secondary: '#F9FAFB'
+                                })
+                              }}
+                              className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left hover:shadow-md"
+                            >
+                              <div className="flex space-x-2 mb-2">
+                                <div className="w-6 h-6 rounded-full bg-pink-600"></div>
+                                <div className="w-6 h-6 rounded-full bg-gray-800"></div>
+                                <div className="w-6 h-6 rounded-full bg-white border border-gray-200"></div>
+                                <div className="w-6 h-6 rounded-full bg-gray-50 border border-gray-200"></div>
+                              </div>
+                              <div className="text-sm font-medium">Pink (Default)</div>
+                            </button>
+                            
+                            <button
+                              onClick={() => {
+                                setColors({
+                                  ...colors,
+                                  primary: '#2563EB',
+                                  text: '#1F2937',
+                                  background: '#FFFFFF',
+                                  secondary: '#F0F9FF'
+                                })
+                              }}
+                              className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left hover:shadow-md"
+                            >
+                              <div className="flex space-x-2 mb-2">
+                                <div className="w-6 h-6 rounded-full bg-blue-600"></div>
+                                <div className="w-6 h-6 rounded-full bg-gray-800"></div>
+                                <div className="w-6 h-6 rounded-full bg-white border border-gray-200"></div>
+                                <div className="w-6 h-6 rounded-full bg-blue-50 border border-gray-200"></div>
+                              </div>
+                              <div className="text-sm font-medium">Blue Sky</div>
+                            </button>
+                            
+                            <button
+                              onClick={() => {
+                                setColors({
+                                  ...colors,
+                                  primary: '#10B981',
+                                  text: '#1F2937',
+                                  background: '#FFFFFF',
+                                  secondary: '#ECFDF5'
+                                })
+                              }}
+                              className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left hover:shadow-md"
+                            >
+                              <div className="flex space-x-2 mb-2">
+                                <div className="w-6 h-6 rounded-full bg-emerald-500"></div>
+                                <div className="w-6 h-6 rounded-full bg-gray-800"></div>
+                                <div className="w-6 h-6 rounded-full bg-white border border-gray-200"></div>
+                                <div className="w-6 h-6 rounded-full bg-emerald-50 border border-gray-200"></div>
+                              </div>
+                              <div className="text-sm font-medium">Fresh Green</div>
+                            </button>
+                            
+                            <button
+                              onClick={() => {
+                                setColors({
+                                  ...colors,
+                                  primary: '#F59E0B',
+                                  text: '#1F2937',
+                                  background: '#FFFBEB',
+                                  secondary: '#FEF3C7'
+                                })
+                              }}
+                              className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left hover:shadow-md"
+                            >
+                              <div className="flex space-x-2 mb-2">
+                                <div className="w-6 h-6 rounded-full bg-amber-500"></div>
+                                <div className="w-6 h-6 rounded-full bg-gray-800"></div>
+                                <div className="w-6 h-6 rounded-full bg-amber-50 border border-gray-200"></div>
+                                <div className="w-6 h-6 rounded-full bg-amber-100 border border-gray-200"></div>
+                              </div>
+                              <div className="text-sm font-medium">Warm Amber</div>
+                            </button>
+                            
+                            <button
+                              onClick={() => {
+                                setColors({
+                                  ...colors,
+                                  primary: '#7C3AED',
+                                  text: '#1F2937',
+                                  background: '#FFFFFF',
+                                  secondary: '#F5F3FF'
+                                })
+                              }}
+                              className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left hover:shadow-md"
+                            >
+                              <div className="flex space-x-2 mb-2">
+                                <div className="w-6 h-6 rounded-full bg-violet-600"></div>
+                                <div className="w-6 h-6 rounded-full bg-gray-800"></div>
+                                <div className="w-6 h-6 rounded-full bg-white border border-gray-200"></div>
+                                <div className="w-6 h-6 rounded-full bg-violet-50 border border-gray-200"></div>
+                              </div>
+                              <div className="text-sm font-medium">Royal Purple</div>
+                            </button>
+                            
+                            <button
+                              onClick={() => {
+                                setColors({
+                                  ...colors,
+                                  primary: '#EF4444',
+                                  text: '#1F2937',
+                                  background: '#FFFFFF',
+                                  secondary: '#FEF2F2'
+                                })
+                              }}
+                              className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left hover:shadow-md"
+                            >
+                              <div className="flex space-x-2 mb-2">
+                                <div className="w-6 h-6 rounded-full bg-red-500"></div>
+                                <div className="w-6 h-6 rounded-full bg-gray-800"></div>
+                                <div className="w-6 h-6 rounded-full bg-white border border-gray-200"></div>
+                                <div className="w-6 h-6 rounded-full bg-red-50 border border-gray-200"></div>
+                              </div>
+                              <div className="text-sm font-medium">Vibrant Red</div>
+                            </button>
+                            
+                            <button
+                              onClick={() => {
+                                setColors({
+                                  ...colors,
+                                  primary: '#1E293B',
+                                  text: '#1E293B',
+                                  background: '#FFFFFF',
+                                  secondary: '#F8FAFC'
+                                })
+                              }}
+                              className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left hover:shadow-md"
+                            >
+                              <div className="flex space-x-2 mb-2">
+                                <div className="w-6 h-6 rounded-full bg-slate-800"></div>
+                                <div className="w-6 h-6 rounded-full bg-slate-800"></div>
+                                <div className="w-6 h-6 rounded-full bg-white border border-gray-200"></div>
+                                <div className="w-6 h-6 rounded-full bg-slate-50 border border-gray-200"></div>
+                              </div>
+                              <div className="text-sm font-medium">Classic Slate</div>
+                            </button>
+                            
+                            <button
+                              onClick={() => {
+                                setColors({
+                                  ...colors,
+                                  primary: '#0F766E',
+                                  text: '#0F766E',
+                                  background: '#F0FDFA',
+                                  secondary: '#CCFBF1'
+                                })
+                              }}
+                              className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left hover:shadow-md"
+                            >
+                              <div className="flex space-x-2 mb-2">
+                                <div className="w-6 h-6 rounded-full bg-teal-700"></div>
+                                <div className="w-6 h-6 rounded-full bg-teal-700"></div>
+                                <div className="w-6 h-6 rounded-full bg-teal-50 border border-gray-200"></div>
+                                <div className="w-6 h-6 rounded-full bg-teal-100 border border-gray-200"></div>
+                              </div>
+                              <div className="text-sm font-medium">Teal Monochrome</div>
+                            </button>
+                            </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Phone Preview */}
+                  <div className="flex justify-center">
+                    <div className="bg-white rounded-xl shadow-sm overflow-hidden p-6 border border-gray-200">
+                      <h3 className="text-lg font-medium text-center mb-6">Real-time Preview</h3>
+                      <PhonePreview />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Preview Section */}
+            {activeSection === 'preview' && (
+              <div className="space-y-6">
+                <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                  <div className="p-6 border-b border-gray-100">
+                    <h2 className="text-xl font-semibold text-gray-800">Menu Preview</h2>
+                    <p className="text-gray-500 text-sm mt-1">See how your menu will look to customers on different devices</p>
+                  </div>
+
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-lg font-medium text-gray-700">Device Preview</h3>
+                      <div className="flex space-x-2 bg-gray-100 p-1 rounded-md">
+                        <button
+                          onClick={() => setPreviewDevice('mobile')}
+                          className={`px-3 py-1.5 rounded text-sm font-medium flex items-center ${
+                            previewDevice === 'mobile' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-600'
+                          }`}
+                        >
+                          <Smartphone className="w-4 h-4 mr-1.5" />
+                          Mobile
+                        </button>
+                        <button
+                          onClick={() => setPreviewDevice('tablet')}
+                          className={`px-3 py-1.5 rounded text-sm font-medium flex items-center ${
+                            previewDevice === 'tablet' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-600'
+                          }`}
+                        >
+                          <PanelLeft className="w-4 h-4 mr-1.5" />
+                          Tablet
+                        </button>
+                        <button
+                          onClick={() => setPreviewDevice('desktop')}
+                          className={`px-3 py-1.5 rounded text-sm font-medium flex items-center ${
+                            previewDevice === 'desktop' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-600'
+                          }`}
+                        >
+                          <Laptop className="w-4 h-4 mr-1.5" />
+                          Desktop
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {/* Mobile Preview */}
+                    {previewDevice === 'mobile' && (
+                      <div className="flex flex-col items-center">
+                        <div className="mb-4 text-center">
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                            iPhone X / 11 / 12 / 13
+                          </span>
+                        </div>
+                        <PhonePreview />
+                        <div className="mt-6 flex justify-center">
+                          <button
+                            onClick={() => navigate('/menu')}
+                            className="px-4 py-2 text-sm font-medium text-white rounded-md transition-colors flex items-center"
+                            style={{ backgroundColor: colors.primary }}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Full Menu
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Tablet Preview */}
+                    {previewDevice === 'tablet' && (
+                      <div className="flex flex-col items-center">
+                        <div className="mb-4 text-center">
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                            iPad / Tablet
+                          </span>
+                        </div>
+                        <div className="relative w-[500px] h-[700px] border-12 border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+                          {/* Tablet home button */}
+                          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-10 h-10 rounded-full border-2 border-gray-600"></div>
+                          
+                          {/* Banner/Header */}
+                          <div className="relative w-full h-40 overflow-hidden" style={{ 
+                            backgroundColor: banner ? 'transparent' : colors.primary,
+                            backgroundImage: banner ? `url(${banner})` : 'none',
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center'
+                          }}>
+                            {/* Header content */}
+                            <div className="absolute inset-0 pt-10 px-6">
+                              <div className="flex items-center">
+                                <button className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20">
+                                  <ArrowLeft className="w-4 h-4 text-white" />
+                                </button>
+                                
+                                {logo && (
+                                  <div 
+                                    className={`
+                                      ${logoPosition === 'left' ? 'absolute left-16' : 
+                                        'absolute left-1/2 transform -translate-x-1/2'}
+                                    `}
+                                  >
+                                    <div 
+                                      className={`
+                                        ${logoShape === 'circle' ? 'rounded-full overflow-hidden' : ''}
+                                        ${logoSize === 'small' ? 'h-8 w-8' : 
+                                          logoSize === 'medium' ? 'h-10 w-10' : 
+                                          'h-14 w-14'}
+                                        flex items-center justify-center bg-white/20 p-1
+                                      `}
+                                    >
+                                      <img 
+                                        src={logo} 
+                                        alt="Restaurant logo" 
+                                        className={`
+                                          ${logoShape === 'circle' ? 'h-full w-full object-cover' : 'h-full w-auto object-contain'}
+                                        `}
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                <div className="ml-auto flex space-x-2">
+                                  <button className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20">
+                                    <Search className="w-4 h-4 text-white" />
+                                  </button>
+                                  <button className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20">
+                                    <Globe className="w-4 h-4 text-white" />
+                                  </button>
+                                </div>
+                              </div>
+                              
+                              <div className="text-center mt-4" style={{ color: 'white' }}>
+                                <h1 className="text-xl font-bold">Welcome to Restaurant Name</h1>
+                                <div className="inline-block bg-white/20 px-3 py-1 rounded-full mt-2 text-sm">
+                                  Table 12
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Content */}
+                          <div className="h-[calc(100%-10rem)] overflow-y-auto bg-gray-100">
+                            {/* Category tabs */}
+                            <div className="flex overflow-x-auto px-4 py-3 space-x-4 bg-white border-b border-gray-200 hide-scrollbar">
+                              {['All', 'Starters', 'Mains', 'Desserts', 'Drinks'].map((category, index) => (
+                                <div key={index} className="flex flex-col items-center shrink-0">
+                                  <div 
+                                    className={`w-16 h-16 rounded-lg flex items-center justify-center mb-1 ${index === 0 ? 'text-white' : 'text-gray-600 bg-gray-100'}`}
+                                    style={{ backgroundColor: index === 0 ? colors.primary : '' }}
+                                  >
+                                    <Coffee className="w-6 h-6" />
+                                  </div>
+                                  <span className={`text-xs ${index === 0 ? 'font-medium text-gray-900' : 'text-gray-600'}`}>
+                                    {category}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                            
+                            {/* Menu items */}
+                            <div className="p-4 space-y-4 grid grid-cols-2 gap-4">
+                              {[1, 2, 3, 4].map((item) => (
+                                <div key={item} className="bg-white p-4 rounded-lg shadow-sm">
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <h3 className="font-medium" style={{ color: colors.text }}>Margherita Pizza</h3>
+                                      <p className="text-sm text-gray-500 mt-1 line-clamp-2">Fresh mozzarella, tomatoes, and basil on our signature crust</p>
+                                    </div>
+                                    <span className="font-bold" style={{ color: colors.primary }}>$14.99</span>
+                                  </div>
+                                  <div className="flex justify-end mt-3">
+                                    <button
+                                      className="px-4 py-2 rounded-full text-white text-sm"
+                                      style={{ backgroundColor: colors.primary }}
+                                    >
+                                      Add to Cart
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-6 flex justify-center">
+                          <button
+                            onClick={() => navigate('/menu')}
+                            className="px-4 py-2 text-sm font-medium text-white rounded-md transition-colors flex items-center"
+                            style={{ backgroundColor: colors.primary }}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Full Menu
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Desktop Preview */}
+                    {previewDevice === 'desktop' && (
+                      <div className="flex flex-col items-center">
+                        <div className="mb-4 text-center">
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                            Laptop / Desktop
+                          </span>
+                        </div>
+                        <div className="relative w-[800px] h-[500px] border-t-8 border-l-8 border-r-8 border-b-16 border-gray-800 rounded-2xl overflow-hidden shadow-xl">
+                          {/* Desktop camera */}
+                          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-4 w-2 h-2 rounded-full bg-gray-600 ring-2 ring-gray-800"></div>
+                          
+                          {/* Content */}
+                          <div className="flex h-full bg-gray-100">
+                            {/* Sidebar */}
+                            <div className="w-56 bg-white border-r border-gray-200 overflow-hidden shrink-0">
+                              <div className="p-4 border-b border-gray-100">
+                                <div className="flex items-center justify-center">
+                                  {logo && (
+                                    <div className={`${logoShape === 'circle' ? 'rounded-full overflow-hidden' : ''} w-12 h-12 mr-2`}>
+                                      <img 
+                                        src={logo} 
+                                        alt="Restaurant logo" 
+                                        className={`${logoShape === 'circle' ? 'h-full w-full object-cover' : 'h-full w-auto object-contain'}`}
+                                      />
+                                    </div>
+                                  )}
+                                  <h2 className="font-bold text-lg" style={{ color: colors.text }}>Restaurant</h2>
+                                </div>
+                              </div>
+                              <div className="p-2">
+                                <div className="rounded-lg bg-gray-100 p-2 mb-1">
+                                  <div className="flex items-center text-sm font-medium" style={{ color: colors.primary }}>
+                                    <Coffee className="w-4 h-4 mr-2" />
+                                    All
+                                  </div>
+                                </div>
+                                <div className="rounded-lg hover:bg-gray-100 p-2 mb-1">
+                                  <div className="flex items-center text-sm text-gray-700">
+                                    <Coffee className="w-4 h-4 mr-2" />
+                                    Starters
+                                  </div>
+                                </div>
+                                <div className="rounded-lg hover:bg-gray-100 p-2 mb-1">
+                                  <div className="flex items-center text-sm text-gray-700">
+                                    <Coffee className="w-4 h-4 mr-2" />
+                                    Mains
+                                  </div>
+                                </div>
+                                <div className="rounded-lg hover:bg-gray-100 p-2 mb-1">
+                                  <div className="flex items-center text-sm text-gray-700">
+                                    <Coffee className="w-4 h-4 mr-2" />
+                                    Desserts
+                                  </div>
+                                </div>
+                                <div className="rounded-lg hover:bg-gray-100 p-2 mb-1">
+                                  <div className="flex items-center text-sm text-gray-700">
+                                    <Coffee className="w-4 h-4 mr-2" />
+                                    Drinks
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Main content */}
+                            <div className="flex-1 overflow-y-auto">
+                              {/* Header */}
+                              <div className="sticky top-0 z-10 p-4 bg-white shadow-sm border-b border-gray-200 flex items-center justify-between">
+                                <h2 className="font-bold text-lg" style={{ color: colors.text }}>All Items</h2>
+                                <div className="flex items-center space-x-2">
+                                  <div className="relative">
+                                    <input
+                                      type="text"
+                                      placeholder="Search menu..."
+                                      className="w-56 px-4 py-2 pr-8 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-opacity-50"
+                                      style={{ 
+                                        focusRing: colors.primary,
+                                        color: colors.text
+                                      }}
+                                    />
+                                    <Search className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 transform -translate-y-1/2" />
+                                  </div>
+                                  <button className="p-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200">
+                                    <MoreHorizontal className="w-5 h-5" />
+                                  </button>
+                                </div>
+                              </div>
+                              
+                              {/* Menu items grid */}
+                              <div className="p-4 grid grid-cols-2 gap-4">
+                                {[1, 2, 3, 4].map((item) => (
+                                  <div key={item} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                                    <div className="flex justify-between items-start">
+                                      <div>
+                                        <h3 className="font-medium" style={{ color: colors.text }}>Margherita Pizza</h3>
+                                        <p className="text-sm text-gray-500 mt-1">Fresh mozzarella, tomatoes, and basil on our signature crust</p>
+                                      </div>
+                                      <span className="font-bold" style={{ color: colors.primary }}>$14.99</span>
+                                    </div>
+                                    <div className="flex justify-end mt-3">
+                                      <button
+                                        className="px-4 py-2 rounded-full text-white text-sm"
+                                        style={{ backgroundColor: colors.primary }}
+                                      >
+                                        Add to Cart
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-6 flex justify-center">
+                          <button
+                            onClick={() => navigate('/menu')}
+                            className="px-4 py-2 text-sm font-medium text-white rounded-md transition-colors flex items-center"
+                            style={{ backgroundColor: colors.primary }}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Full Menu
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Settings Section */}
+            {activeSection === 'settings' && (
+              <div className="space-y-6">
+                <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                  <div className="p-6 border-b border-gray-100">
+                    <h2 className="text-xl font-semibold text-gray-800">Dashboard Settings</h2>
+                    <p className="text-gray-500 text-sm mt-1">Manage your dashboard preferences</p>
+                  </div>
+
+                  <div className="p-6">
+                    <div className="max-w-xl mx-auto space-y-8">
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-2">
+                            <Settings className="w-4 h-4 text-blue-600" />
+                          </div>
+                          Account Settings
+                        </h3>
+                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                          <div className="flex items-center justify-between p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                            <div>
+                              <p className="text-sm font-medium text-gray-700">Change Password</p>
+                              <p className="text-xs text-gray-500 mt-1">Update your account password</p>
+                            </div>
+                            <button 
+                              className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+                              onClick={() => showNotification('Password reset email has been sent to your email address.')}
+                            >
+                              Reset Password
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center mr-2">
+                            <Palette className="w-4 h-4 text-purple-600" />
+                          </div>
+                          Theme Appearance
+                        </h3>
+                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                          <button
+                            onClick={handleReset}
+                            className="w-full flex items-center justify-between p-3 rounded-md hover:bg-gray-100 transition-colors"
+                          >
+                            <div className="text-left">
+                              <p className="text-sm font-medium text-gray-700">Reset to Default Theme</p>
+                              <p className="text-xs text-gray-500 mt-1">Restore the original appearance settings</p>
+                            </div>
+                            <RefreshCw className="w-5 h-5 text-gray-500" />
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mr-2">
+                            <Eye className="w-4 h-4 text-green-600" />
+                          </div>
+                          Menu Actions
+                        </h3>
+                        <div className="space-y-3">
+                          <button
+                            onClick={() => navigate('/menu')}
+                            className="w-full flex items-center justify-between p-4 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-gray-200 shadow-sm"
+                          >
+                            <div className="text-left">
+                              <p className="text-sm font-medium text-gray-700">View Menu</p>
+                              <p className="text-xs text-gray-500 mt-1">See the customer-facing menu</p>
+                            </div>
+                            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                              <Eye className="w-5 h-5 text-gray-600" />
+                            </div>
+                          </button>
+                          
+                          <button
+                            onClick={() => {}}
+                            className="w-full flex items-center justify-between p-4 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-gray-200 shadow-sm"
+                          >
+                            <div className="text-left">
+                              <p className="text-sm font-medium text-gray-700">Get QR Code</p>
+                              <p className="text-xs text-gray-500 mt-1">Download QR code for your restaurant</p>
+                            </div>
+                            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                              <Smartphone className="w-5 h-5 text-gray-600" />
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                          <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center mr-2">
+                            <LogOut className="w-4 h-4 text-red-600" />
+                          </div>
+                          Account Actions
+                        </h3>
+                        <div className="space-y-3">
+                          <button
+                            onClick={handleLogout}
+                            className="w-full flex items-center justify-between p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-colors border border-red-100 shadow-sm"
+                          >
+                            <div className="text-left">
+                              <p className="text-sm font-medium text-red-700">Logout</p>
+                              <p className="text-xs text-red-500 mt-1">Sign out from your account</p>
+                            </div>
+                            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                              <LogOut className="w-5 h-5 text-red-600" />
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
     </div>
   )
 }
-
-// Simple icon components for the preview
-const ArrowLeftIcon = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M19 12H5M12 19l-7-7 7-7" />
-  </svg>
-);
-
-const SearchIcon = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="11" cy="11" r="8" />
-    <path d="m21 21-4.3-4.3" />
-  </svg>
-);
