@@ -7,6 +7,11 @@ export default defineConfig({
   base: '/',
   build: {
     outDir: 'dist',
-    assetsDir: 'assets'
+    assetsDir: 'assets',
+    cssCodeSplit: false, // Forces CSS into one file for better loading
+    minify: true,
+  },
+  css: {
+    devSourcemap: true, // Helps with debugging
   }
 })
