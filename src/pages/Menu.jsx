@@ -566,126 +566,226 @@ export default function Menu() {
   
   return (
     <div className="min-h-screen bg-gray-50">
-{/* Mobile Optimized Header */}
+{/* Mobile Optimized Header - Super Simple Version */}
 <header
-  className="sticky top-0 z-30"
-  style={{ backgroundColor: theme.primary }}
+  style={{ 
+    backgroundColor: theme.primary,
+    position: 'sticky',
+    top: 0,
+    zIndex: 30,
+    width: '100%'
+  }}
 >
-  {/* Menu Bar */}
-  <div className="px-4 py-3 flex items-center">
-    {/* Left side - Back button */}
-    <div className="flex-none">
-      <button 
-        onClick={() => navigate('/')}
-        className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-sm"
-        aria-label="Go back"
-      >
-        <ArrowLeft className="w-5 h-5 text-white" />
-      </button>
-    </div>
-    
-{/* Logo - Fixed Position Approach */}
-{theme.logo && (
-  <div 
-    style={{
-      position: 'fixed',
-      top: '13px', 
-      left: theme.logoPosition === 'center' ? '50%' : '65px',
-      transform: theme.logoPosition === 'center' ? 'translateX(-50%)' : 'none',
-      zIndex: 9999,
-      width: theme.logoSize === 'small' ? '32px' : theme.logoSize === 'medium' ? '40px' : '48px',
-      height: theme.logoSize === 'small' ? '32px' : theme.logoSize === 'medium' ? '40px' : '48px',
-      backgroundColor: 'rgba(255, 255, 255, 0.3)',
-      borderRadius: theme.logoShape === 'circle' ? '50%' : '4px',
-      padding: '4px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      overflow: 'hidden'
-    }}
-  >
-    <img 
-      src={theme.logo} 
-      alt="Restaurant logo" 
-      style={{
-        width: theme.logoShape === 'circle' ? '100%' : 'auto',
-        height: '100%',
-        objectFit: theme.logoShape === 'circle' ? 'cover' : 'contain',
-        display: 'block'
-      }}
-    />
-  </div>
-)}
-    
-    {/* Right side - Search/Language */}
-    <div className="flex-none flex items-center space-x-2">
-      <button 
-        onClick={toggleSearch}
-        className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-sm"
-        aria-label={isSearchOpen ? "Close search" : "Search menu"}
-      >
-        {isSearchOpen ? <X className="w-5 h-5 text-white" /> : <Search className="w-5 h-5 text-white" />}
-      </button>
-      
-      <EnhancedLanguageSwitcher 
-        currentLanguage={language} 
-        onLanguageChange={setLanguage} 
-      />
-    </div>
-  </div>
+  {/* Menu Bar - Table Layout for Maximum Compatibility */}
+  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+    <tbody>
+      <tr>
+        <td style={{ width: '48px', padding: '12px 8px' }}>
+          <button 
+            onClick={() => navigate('/')}
+            style={{
+              width: '40px',
+              height: '40px',
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            <ArrowLeft color="white" size={20} />
+          </button>
+        </td>
+        
+        <td style={{ textAlign: theme.logoPosition === 'center' ? 'center' : 'left' }}>
+          {theme.logo && (
+            <div style={{
+              display: 'inline-block',
+              width: theme.logoSize === 'small' ? '32px' : theme.logoSize === 'medium' ? '40px' : '48px',
+              height: theme.logoSize === 'small' ? '32px' : theme.logoSize === 'medium' ? '40px' : '48px',
+              backgroundColor: 'rgba(255, 255, 255, 0.3)',
+              borderRadius: theme.logoShape === 'circle' ? '50%' : '4px',
+              padding: '4px',
+              overflow: 'hidden',
+              verticalAlign: 'middle'
+            }}>
+              <img 
+                src={theme.logo} 
+                alt="Restaurant logo" 
+                style={{
+                  width: theme.logoShape === 'circle' ? '100%' : 'auto',
+                  height: '100%',
+                  objectFit: theme.logoShape === 'circle' ? 'cover' : 'contain',
+                  display: 'block'
+                }}
+              />
+            </div>
+          )}
+        </td>
+        
+        <td style={{ width: '80px', textAlign: 'right', padding: '12px 8px' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            <button 
+              onClick={toggleSearch}
+              style={{
+                width: '40px',
+                height: '40px',
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              {isSearchOpen ? <X color="white" size={20} /> : <Search color="white" size={20} />}
+            </button>
+            
+            <div style={{ position: 'relative' }}>
+              <button 
+                onClick={() => {
+                  const dropdown = document.getElementById('language-dropdown');
+                  if (dropdown) {
+                    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+                  }
+                }}
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  borderRadius: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '6px 12px',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <Globe color="white" size={16} />
+              </button>
+              
+              <div 
+                id="language-dropdown"
+                style={{
+                  display: 'none',
+                  position: 'absolute',
+                  right: 0,
+                  top: '44px',
+                  backgroundColor: 'white',
+                  borderRadius: '8px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                  width: '120px',
+                  zIndex: 50
+                }}
+              >
+                {[
+                  { code: 'en', name: 'English' },
+                  { code: 'es', name: 'Español' },
+                  { code: 'nl', name: 'Nederlands' }
+                ].map(lang => (
+                  <button
+                    key={lang.code}
+                    onClick={() => {
+                      setLanguage(lang.code);
+                      document.getElementById('language-dropdown').style.display = 'none';
+                    }}
+                    style={{
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '8px 16px',
+                      border: 'none',
+                      backgroundColor: language === lang.code ? '#f3f4f6' : 'transparent',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      color: language === lang.code ? '#2563eb' : '#4b5563'
+                    }}
+                  >
+                    {lang.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
   
   {/* Welcome Banner */}
-  <AnimatePresence>
-    {showWelcome && !isSearchOpen && (
-      <motion.div 
-        initial={{ opacity: 0, height: 0 }}
-        animate={{ opacity: 1, height: 'auto' }}
-        exit={{ opacity: 0, height: 0 }}
-        className="text-center py-3"
-      >
-        <h1 className="text-2xl font-bold text-white mb-1">
-          {t('header.welcome')}
-        </h1>
-        <div className="inline-block bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full">
-          <p className="text-white text-sm">
-            Table <span className="font-semibold">{tableNumber}</span>
-          </p>
-        </div>
-      </motion.div>
-    )}
-  </AnimatePresence>
+  {showWelcome && !isSearchOpen && (
+    <div style={{
+      textAlign: 'center',
+      padding: '12px 0'
+    }}>
+      <h1 style={{
+        fontSize: '24px', 
+        fontWeight: 'bold',
+        color: 'white',
+        marginBottom: '4px'
+      }}>
+        {t('header.welcome')}
+      </h1>
+      <div style={{
+        display: 'inline-block',
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        padding: '6px 16px',
+        borderRadius: '20px'
+      }}>
+        <p style={{ color: 'white', fontSize: '14px' }}>
+          Table <span style={{ fontWeight: 'bold' }}>{tableNumber}</span>
+        </p>
+      </div>
+    </div>
+  )}
   
   {/* Search Input */}
-  <AnimatePresence>
-    {isSearchOpen && (
-      <motion.div 
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -10 }}
-        className="px-4 pb-3"
-      >
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <input
-            ref={searchInputRef}
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search menu..."
-            className="w-full py-2.5 pl-10 pr-4 bg-white/95 backdrop-blur-sm rounded-xl text-gray-700 focus:outline-none"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
+  {isSearchOpen && (
+    <div style={{ padding: '0 16px 12px 16px' }}>
+      <div style={{ position: 'relative' }}>
+        <div style={{ 
+          position: 'absolute',
+          left: '12px',
+          top: '50%',
+          transform: 'translateY(-50%)'
+        }}>
+          <Search color="#9ca3af" size={20} />
         </div>
-      </motion.div>
-    )}
-  </AnimatePresence>
+        <input
+          ref={searchInputRef}
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search menu..."
+          style={{
+            width: '100%',
+            padding: '10px 40px 10px 40px',
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            borderRadius: '12px',
+            border: 'none',
+            fontSize: '16px',
+            color: '#374151'
+          }}
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            style={{
+              position: 'absolute',
+              right: '12px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            <X color="#9ca3af" size={16} />
+          </button>
+        )}
+      </div>
+    </div>
+  )}
 </header>
       
       {/* Category Navigation */}
