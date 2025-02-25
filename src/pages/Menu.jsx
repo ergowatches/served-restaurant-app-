@@ -584,29 +584,38 @@ export default function Menu() {
       </button>
     </div>
     
-    {/* Center - Logo */}
-    <div className={`flex-1 flex ${theme.logoPosition === 'center' ? 'justify-center' : 'justify-start ml-3'}`}>
-      {theme.logo && (
-        <div 
-          className={`
-            flex items-center justify-center bg-white/30 backdrop-blur-sm p-1
-            ${theme.logoShape === 'circle' ? 'rounded-full overflow-hidden' : 'rounded-md'}
-            ${theme.logoSize === 'small' ? 'h-8 w-8' : 
-              theme.logoSize === 'medium' ? 'h-10 w-10' : 
-              'h-12 w-12'}
-          `}
-        >
-          <img 
-            src={theme.logo} 
-            alt="Restaurant logo" 
-            className={`
-              ${theme.logoShape === 'circle' ? 'h-full w-full object-cover' : 'h-full object-contain'}
-              max-w-full
-            `}
-          />
-        </div>
-      )}
-    </div>
+{/* Logo - Fixed Position Approach */}
+{theme.logo && (
+  <div 
+    style={{
+      position: 'fixed',
+      top: '13px', 
+      left: theme.logoPosition === 'center' ? '50%' : '65px',
+      transform: theme.logoPosition === 'center' ? 'translateX(-50%)' : 'none',
+      zIndex: 9999,
+      width: theme.logoSize === 'small' ? '32px' : theme.logoSize === 'medium' ? '40px' : '48px',
+      height: theme.logoSize === 'small' ? '32px' : theme.logoSize === 'medium' ? '40px' : '48px',
+      backgroundColor: 'rgba(255, 255, 255, 0.3)',
+      borderRadius: theme.logoShape === 'circle' ? '50%' : '4px',
+      padding: '4px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden'
+    }}
+  >
+    <img 
+      src={theme.logo} 
+      alt="Restaurant logo" 
+      style={{
+        width: theme.logoShape === 'circle' ? '100%' : 'auto',
+        height: '100%',
+        objectFit: theme.logoShape === 'circle' ? 'cover' : 'contain',
+        display: 'block'
+      }}
+    />
+  </div>
+)}
     
     {/* Right side - Search/Language */}
     <div className="flex-none flex items-center space-x-2">
