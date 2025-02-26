@@ -51,7 +51,7 @@ export default function WelcomePage() {
           className="max-w-md text-white"
         >
           <h1 className="text-3xl font-bold mb-3">{theme.welcomeTitle || 'Welcome to Our Restaurant'}</h1>
-          <p className="text-xl text-white/80 mb-8">{theme.welcomeSubtitle || 'Scan the QR code to view our menu'}</p>
+          <p className="text-xl text-white/80 mb-8">{theme.welcomeSubtitle || 'Click the Button Below to See the Menu'}</p>
           
           <motion.button
             whileHover={{ scale: 1.05 }}
