@@ -54,7 +54,7 @@ import {
 } from 'lucide-react'
 
 const DEFAULT_THEME = {
-  primary: '#DB2777',
+  primary: '#7E6EFF',
   secondary: '#F9FAFB',
   text: '#1F2937',
   background: '#FFFFFF',
@@ -118,14 +118,95 @@ export default function Dashboard() {
   
   // Smart Menu states
   const [activeSmartMenuTab, setActiveSmartMenuTab] = useState('rotation')
+  const [menuCategories, setMenuCategories] = useState([
+    { id: 'appetizers', name: 'Appetizers', menuItems: [] },
+    { id: 'mains', name: 'Main Courses', menuItems: [] },
+    { id: 'drinks', name: 'Drinks', menuItems: [] },
+    { id: 'desserts', name: 'Desserts', menuItems: [] }
+  ])
   const [menuRotations, setMenuRotations] = useState([
-    { id: 1, name: 'Breakfast Menu', startTime: '07:00', endTime: '11:00', days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'], isActive: true },
-    { id: 2, name: 'Lunch Menu', startTime: '11:00', endTime: '16:00', days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'], isActive: true }
+    { 
+      id: 1, 
+      name: 'Breakfast Menu', 
+      startTime: '07:00', 
+      endTime: '11:00', 
+      days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'], 
+      isActive: true,
+      categories: ['appetizers', 'drinks'],
+      description: 'Morning offerings including pastries, eggs, and coffee',
+      icon: 'Coffee'
+    },
+    { 
+      id: 2, 
+      name: 'Lunch Menu', 
+      startTime: '11:00', 
+      endTime: '16:00', 
+      days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'], 
+      isActive: true,
+      categories: ['appetizers', 'mains', 'drinks', 'desserts'],
+      description: 'Full menu with all offerings available',
+      icon: 'Pizza'
+    },
+    { 
+      id: 3, 
+      name: 'Dinner Menu', 
+      startTime: '16:00', 
+      endTime: '23:00', 
+      days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'], 
+      isActive: true,
+      categories: ['appetizers', 'mains', 'drinks', 'desserts'],
+      description: 'Evening selections with premium offerings',
+      icon: 'Wine'
+    }
   ])
   const [dynamicPricingRules, setDynamicPricingRules] = useState([
-    { id: 1, name: 'Happy Hour', adjustment: -10, startTime: '16:00', endTime: '18:00', days: ['mon', 'tue', 'wed', 'thu', 'fri'], isActive: true },
-    { id: 2, name: 'Weekend Premium', adjustment: 5, startTime: '17:00', endTime: '22:00', days: ['fri', 'sat'], isActive: true }
+    { 
+      id: 1, 
+      name: 'Happy Hour', 
+      adjustment: -10, 
+      startTime: '16:00', 
+      endTime: '18:00', 
+      days: ['mon', 'tue', 'wed', 'thu', 'fri'], 
+      isActive: true,
+      categories: ['drinks'],
+      itemIds: [],
+      applyTo: 'categories',
+      description: 'Afternoon discount on all beverages',
+      icon: 'Coffee'
+    },
+    { 
+      id: 2, 
+      name: 'Weekend Premium', 
+      adjustment: 5, 
+      startTime: '17:00', 
+      endTime: '22:00', 
+      days: ['fri', 'sat'], 
+      isActive: true,
+      categories: [],
+      itemIds: ['specialdish1', 'specialdish2'],
+      applyTo: 'items',
+      description: 'Weekend price increase for special dishes',
+      icon: 'Star'
+    },
+    {
+      id: 3,
+      name: 'Early Bird Special',
+      adjustment: -15,
+      startTime: '16:00',
+      endTime: '18:00',
+      days: ['mon', 'tue', 'wed', 'thu', 'sun'],
+      isActive: true,
+      categories: ['mains'],
+      itemIds: [],
+      applyTo: 'categories',
+      description: 'Early dinner discount on all main courses',
+      icon: 'AlarmClock'
+    }
   ])
+  const [editingRotation, setEditingRotation] = useState(null)
+  const [editingPricingRule, setEditingPricingRule] = useState(null)
+  const [allMenuItems, setAllMenuItems] = useState([])
+  const [isLoadingMenuItems, setIsLoadingMenuItems] = useState(false)
   
   // =========== REFS ===========
   const logoInputRef = useRef(null)
@@ -138,6 +219,30 @@ export default function Dashboard() {
   const bannerRef = useRef(null)
   const welcomeBackgroundRef = useRef(null)
   const colorPickerRefs = useRef({})
+
+
+
+
+const [showSuggestion, setShowSuggestion] = useState(false);
+const [currentSuggestion, setCurrentSuggestion] = useState(null);
+const [suggestions, setSuggestions] = useState([
+  {
+    id: 1,
+    type: 'pricing',
+    title: 'Happy Hour Suggestion',
+    description: 'We noticed you don\'t have discounted drinks between 4-6pm. Add a happy hour pricing rule to boost weekday traffic?',
+    applied: false,
+    dismissed: false
+  },
+  {
+    id: 2,
+    type: 'menu',
+    title: 'Breakfast Menu Suggestion',
+    description: 'Your breakfast menu rotation starts at 7am. Consider starting at 6am to capture early commuters.',
+    applied: false,
+    dismissed: false
+  }
+]);
 
   // =========== EFFECTS ===========
   
@@ -215,6 +320,21 @@ export default function Dashboard() {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
+  useEffect(() => {
+    // Find suggestions that haven't been dismissed or applied
+    const activeSuggestions = suggestions.filter(s => !s.dismissed && !s.applied);
+    
+    if (activeSuggestions.length > 0) {
+      // Set a timer to show a suggestion after the component mounts
+      const timerId = setTimeout(() => {
+        setCurrentSuggestion(activeSuggestions[Math.floor(Math.random() * activeSuggestions.length)]);
+        setShowSuggestion(true);
+      }, 10000); // Show after 10 seconds
+      
+      return () => clearTimeout(timerId);
+    }
+  }, [suggestions]);
+
   // =========== HANDLERS & UTILITIES ===========
   
   // Handle color change
@@ -235,6 +355,49 @@ export default function Dashboard() {
     const timerId = setTimeout(() => setShowToast(false), 3000)
     return () => clearTimeout(timerId)
   }
+
+  const dismissSuggestion = (id) => {
+    setSuggestions(prev => prev.map(s => 
+      s.id === id ? {...s, dismissed: true} : s
+    ));
+    setShowSuggestion(false);
+  };
+  
+  // Apply suggestion
+  const applySuggestion = (suggestion) => {
+    if (suggestion.type === 'pricing') {
+      // Add a new happy hour pricing rule
+      const newId = dynamicPricingRules.length > 0 ? Math.max(...dynamicPricingRules.map(r => r.id)) + 1 : 1;
+      const happyHourRule = {
+        id: newId,
+        name: 'Happy Hour',
+        adjustment: -15,
+        startTime: '16:00',
+        endTime: '18:00', 
+        days: ['mon', 'tue', 'wed', 'thu', 'fri'],
+        isActive: true,
+        categories: ['drinks'],
+        itemIds: [],
+        applyTo: 'categories',
+        description: 'Discounted drinks to boost weekday traffic',
+        icon: 'Coffee'
+      };
+      setDynamicPricingRules([...dynamicPricingRules, happyHourRule]);
+      showNotification('Happy Hour pricing rule added!');
+    } else if (suggestion.type === 'menu') {
+      // Update breakfast menu start time
+      setMenuRotations(prev => prev.map(r => 
+        r.name.includes('Breakfast') ? {...r, startTime: '06:00'} : r
+      ));
+      showNotification('Breakfast menu start time updated!');
+    }
+    
+    // Mark suggestion as applied
+    setSuggestions(prev => prev.map(s => 
+      s.id === suggestion.id ? {...s, applied: true, dismissed: true} : s
+    ));
+    setShowSuggestion(false);
+  };
 
   // Save theme changes
   const handleSave = () => {
@@ -802,19 +965,80 @@ export default function Dashboard() {
 
   // =========== SMART MENU HANDLERS ===========
 
+  // Fetch menu items (simulating API call)
+  const fetchMenuItems = () => {
+    setIsLoadingMenuItems(true)
+    // Simulate API call with timeout
+    setTimeout(() => {
+      const mockMenuItems = [
+        { id: 'app1', name: 'Garlic Bread', category: 'appetizers', price: 6.99, description: 'Toasted artisan bread with garlic butter' },
+        { id: 'app2', name: 'Bruschetta', category: 'appetizers', price: 8.99, description: 'Tomato, basil and garlic on toasted bread' },
+        { id: 'app3', name: 'Chicken Wings', category: 'appetizers', price: 12.99, description: 'Spicy buffalo wings with blue cheese dip' },
+        { id: 'main1', name: 'Margherita Pizza', category: 'mains', price: 14.99, description: 'Classic pizza with tomato, mozzarella and basil' },
+        { id: 'main2', name: 'Spaghetti Carbonara', category: 'mains', price: 16.99, description: 'Pasta with egg, cheese, pancetta and black pepper' },
+        { id: 'main3', name: 'Grilled Salmon', category: 'mains', price: 22.99, description: 'Atlantic salmon with lemon butter sauce' },
+        { id: 'specialdish1', name: 'Filet Mignon', category: 'mains', price: 32.99, description: 'Premium cut steak with red wine reduction' },
+        { id: 'specialdish2', name: 'Lobster Thermidor', category: 'mains', price: 42.99, description: 'Lobster with creamy wine sauce' },
+        { id: 'drink1', name: 'House Red Wine', category: 'drinks', price: 9.99, description: 'Glass of our house cabernet sauvignon' },
+        { id: 'drink2', name: 'Craft Beer', category: 'drinks', price: 7.99, description: 'Local IPA on tap' },
+        { id: 'drink3', name: 'Espresso', category: 'drinks', price: 3.99, description: 'Double shot of our signature blend' },
+        { id: 'dessert1', name: 'Tiramisu', category: 'desserts', price: 8.99, description: 'Classic Italian coffee-flavored dessert' },
+        { id: 'dessert2', name: 'Chocolate Lava Cake', category: 'desserts', price: 9.99, description: 'Warm chocolate cake with a molten center' }
+      ]
+      setAllMenuItems(mockMenuItems)
+      
+      // Update categories with menu items
+      const updatedCategories = [...menuCategories]
+      updatedCategories.forEach(category => {
+        category.menuItems = mockMenuItems.filter(item => item.category === category.id)
+      })
+      setMenuCategories(updatedCategories)
+      
+      setIsLoadingMenuItems(false)
+    }, 1000)
+  }
+  
+  // Load menu items when component mounts
+  useEffect(() => {
+    fetchMenuItems()
+  }, [])
+
   // Add new menu rotation
   const handleAddMenuRotation = () => {
     const newId = menuRotations.length > 0 ? Math.max(...menuRotations.map(r => r.id)) + 1 : 1
     const newRotation = {
       id: newId,
-      name: `Menu ${newId}`,
+      name: `New Menu ${newId}`,
       startTime: '12:00',
       endTime: '23:59',
       days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
-      isActive: true
+      isActive: true,
+      categories: [],
+      description: 'Define your menu availability',
+      icon: 'Coffee'
     }
     setMenuRotations([...menuRotations, newRotation])
+    // Open editor for the new rotation
+    setEditingRotation(newRotation)
     showNotification('New menu rotation added')
+  }
+
+  // Save menu rotation changes
+  const handleSaveRotation = (rotation) => {
+    setMenuRotations(menuRotations.map(r => 
+      r.id === rotation.id ? rotation : r
+    ))
+    setEditingRotation(null)
+    showNotification('Menu rotation updated successfully')
+  }
+
+  // Delete menu rotation
+  const handleDeleteRotation = (id) => {
+    if (window.confirm('Are you sure you want to delete this menu rotation?')) {
+      setMenuRotations(menuRotations.filter(r => r.id !== id))
+      setEditingRotation(null)
+      showNotification('Menu rotation deleted')
+    }
   }
 
   // Add new dynamic pricing rule
@@ -822,15 +1046,40 @@ export default function Dashboard() {
     const newId = dynamicPricingRules.length > 0 ? Math.max(...dynamicPricingRules.map(r => r.id)) + 1 : 1
     const newRule = {
       id: newId,
-      name: `Pricing Rule ${newId}`,
-      adjustment: 5,
+      name: `New Pricing Rule ${newId}`,
+      adjustment: 0,
       startTime: '17:00',
       endTime: '19:00',
       days: ['mon', 'tue', 'wed', 'thu', 'fri'],
-      isActive: true
+      isActive: true,
+      categories: [],
+      itemIds: [],
+      applyTo: 'categories',
+      description: 'Define your pricing adjustment',
+      icon: 'Percent'
     }
     setDynamicPricingRules([...dynamicPricingRules, newRule])
+    // Open editor for the new rule
+    setEditingPricingRule(newRule)
     showNotification('New pricing rule added')
+  }
+
+  // Save pricing rule changes
+  const handleSavePricingRule = (rule) => {
+    setDynamicPricingRules(dynamicPricingRules.map(r => 
+      r.id === rule.id ? rule : r
+    ))
+    setEditingPricingRule(null)
+    showNotification('Pricing rule updated successfully')
+  }
+
+  // Delete pricing rule
+  const handleDeletePricingRule = (id) => {
+    if (window.confirm('Are you sure you want to delete this pricing rule?')) {
+      setDynamicPricingRules(dynamicPricingRules.filter(r => r.id !== id))
+      setEditingPricingRule(null)
+      showNotification('Pricing rule deleted')
+    }
   }
 
   // Toggle menu rotation active state
@@ -848,6 +1097,62 @@ export default function Dashboard() {
     ))
     showNotification('Pricing rule updated')
   }
+  
+  // Calculate current active menu based on time and day
+  const getCurrentActiveMenu = () => {
+    const now = new Date()
+    const currentHour = now.getHours()
+    const currentMinute = now.getMinutes()
+    const currentTime = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`
+    
+    const days = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
+    const currentDay = days[now.getDay()]
+    
+    return menuRotations.filter(rotation => 
+      rotation.isActive && 
+      rotation.days.includes(currentDay) && 
+      rotation.startTime <= currentTime && 
+      rotation.endTime >= currentTime
+    )
+  }
+  
+  // Calculate price adjustment for an item
+  const getItemPriceAdjustment = (itemId, category) => {
+    const now = new Date()
+    const currentHour = now.getHours()
+    const currentMinute = now.getMinutes()
+    const currentTime = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`
+    
+    const days = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']
+    const currentDay = days[now.getDay()]
+    
+    // Find applicable rules
+    const applicableRules = dynamicPricingRules.filter(rule => 
+      rule.isActive && 
+      rule.days.includes(currentDay) && 
+      rule.startTime <= currentTime && 
+      rule.endTime >= currentTime && 
+      ((rule.applyTo === 'categories' && rule.categories.includes(category)) ||
+       (rule.applyTo === 'items' && rule.itemIds.includes(itemId)))
+    )
+    
+    // Calculate combined adjustment (could be policy-based, here we just take the most significant)
+    if (applicableRules.length === 0) return 0
+    
+    // Find the largest absolute adjustment
+    const significantRule = applicableRules.reduce((prev, current) => 
+      Math.abs(current.adjustment) > Math.abs(prev.adjustment) ? current : prev
+    )
+    
+    return significantRule.adjustment
+  }
+  
+  // Preview adjusted item price
+  const getAdjustedPrice = (basePrice, itemId, category) => {
+    const adjustment = getItemPriceAdjustment(itemId, category)
+    const multiplier = 1 + (adjustment / 100)
+    return (basePrice * multiplier).toFixed(2)
+  }
 
   // Apply theme preset
   const applyThemePreset = (preset) => {
@@ -864,7 +1169,7 @@ export default function Dashboard() {
   // Color presets for easier selection
   const colorPresets = {
     primary: [
-      '#DB2777', // Pink
+      '#7E6EFF', // Pink
       '#2563EB', // Blue
       '#10B981', // Green
       '#F59E0B', // Yellow
@@ -904,7 +1209,7 @@ export default function Dashboard() {
   // Theme presets with complete color schemes
   const themePresets = {
     'pink': {
-      primary: '#DB2777',
+      primary: '#7E6EFF',
       secondary: '#F9FAFB',
       text: '#1F2937',
       background: '#FFFFFF',
@@ -1279,6 +1584,61 @@ export default function Dashboard() {
             {toastType === 'error' && <X className="w-5 h-5" />}
             {toastType === 'info' && <Info className="w-5 h-5" />}
             <p className="font-medium">{toastMessage}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* Suggestion Toast */}
+      <AnimatePresence>
+        {showSuggestion && currentSuggestion && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className={`fixed bottom-6 right-6 z-50 p-4 rounded-xl shadow-lg max-w-md border ${
+              currentSuggestion.type === 'pricing' 
+                ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-200' 
+                : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200'
+            }`}
+          >
+            <div className="flex items-start">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${
+                currentSuggestion.type === 'pricing' 
+                  ? 'bg-amber-100 text-amber-600'
+                  : 'bg-blue-100 text-blue-600'
+              }`}>
+                {currentSuggestion.type === 'pricing' ? (
+                  <Percent className="w-5 h-5" />
+                ) : (
+                  <Clock className="w-5 h-5" />
+                )}
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-gray-800">{currentSuggestion.title}</h3>
+                <p className="text-sm text-gray-600 mt-1">{currentSuggestion.description}</p>
+                <div className="flex justify-end mt-3 space-x-2">
+                  <button
+                    onClick={() => dismissSuggestion(currentSuggestion.id)}
+                    className="px-3 py-1.5 rounded-md border border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+                  >
+                    Dismiss
+                  </button>
+                  <button
+                    onClick={() => applySuggestion(currentSuggestion)}
+                    className="px-3 py-1.5 rounded-md text-white"
+                    style={{ backgroundColor: colors.primary }}
+                  >
+                    Apply
+                  </button>
+                </div>
+              </div>
+              <button
+                onClick={() => dismissSuggestion(currentSuggestion.id)}
+                className="text-gray-400 hover:text-gray-600 ml-2"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1766,15 +2126,14 @@ export default function Dashboard() {
                 <MenuIcon className="h-6 w-6" />
               </button>
               <div className="flex items-center space-x-3">
-                <div 
-                  className="bg-gradient-to-r from-pink-500 to-purple-500 text-white p-2 rounded-lg shadow-md"
-                  style={{ 
-                    background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primary}99 100%)`
-                  }}
-                >
-                  <Coffee className="h-6 w-6" />
-                </div>
-                <h1 className="text-xl font-bold text-gray-900">Served Dashboard</h1>
+              <div className="h-8 w-auto">
+  <img 
+    src="https://i.imgur.com/J7wcKLS.png" 
+    alt="Served Logo" 
+    className="h-full w-auto object-contain"
+  />
+</div>
+                <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
               </div>
             </div>
 
@@ -2489,10 +2848,10 @@ export default function Dashboard() {
                             <button 
                               onClick={() => applyThemePreset(themePresets.pink)}
                               className="bg-white p-3 rounded-xl border-2 hover:shadow-md transition-shadow"
-                              style={{ borderColor: colors.primary === '#DB2777' ? '#DB2777' : 'transparent' }}
+                              style={{ borderColor: colors.primary === '#7E6EFF' ? '#7E6EFF' : 'transparent' }}
                             >
                               <div className="flex justify-between space-x-1 mb-2">
-                                <div className="w-6 h-6 rounded-full bg-[#DB2777]"></div>
+                                <div className="w-6 h-6 rounded-full bg-[#7E6EFF]"></div>
                                 <div className="w-6 h-6 rounded-full bg-[#1F2937]"></div>
                                 <div className="w-6 h-6 rounded-full bg-white border border-gray-200"></div>
                                 <div className="w-6 h-6 rounded-full bg-[#F9FAFB] border border-gray-200"></div>
@@ -3423,59 +3782,271 @@ export default function Dashboard() {
                 {/* Menu Rotation Section */}
                 {activeSmartMenuTab === 'rotation' && (
                   <div className="space-y-6">
+                    {/* Current Active Menu Status */}
+                    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                      <div className="p-6">
+                        <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                          <Clock className="w-5 h-5 mr-2 text-blue-600" />
+                          Current Active Menu
+                        </h2>
+                        
+                        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                          {getCurrentActiveMenu().length > 0 ? (
+                            <>
+                              <div className="flex items-center mb-2">
+                                <div 
+                                  className="w-10 h-10 rounded-full flex items-center justify-center mr-3"
+                                  style={{ backgroundColor: colors.primary }}
+                                >
+                                  <Coffee className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                  <h3 className="font-bold text-gray-800">{getCurrentActiveMenu()[0].name}</h3>
+                                  <p className="text-sm text-gray-600">{getCurrentActiveMenu()[0].description}</p>
+                                </div>
+                                <div className="ml-auto">
+                                  <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                    {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="mt-3">
+                                <span className="text-sm text-gray-700 font-medium">Available Categories:</span>
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  {getCurrentActiveMenu()[0].categories.map(catId => {
+                                    const category = menuCategories.find(c => c.id === catId)
+                                    return category ? (
+                                      <span key={catId} className="text-xs px-2 py-1 bg-white text-gray-700 rounded-full border border-gray-200">
+                                        {category.name}
+                                      </span>
+                                    ) : null
+                                  })}
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="flex items-center justify-center py-4">
+                              <div className="text-center">
+                                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                  <AlertTriangle className="w-6 h-6 text-blue-600" />
+                                </div>
+                                <h3 className="font-medium text-gray-800 mb-1">No Active Menu</h3>
+                                <p className="text-sm text-gray-600">
+                                  No menu is currently active based on your schedules.
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    
                     <div className="bg-white rounded-xl shadow-sm overflow-hidden">
                       <div className="p-6 border-b border-gray-100">
                         <h2 className="text-xl font-semibold text-gray-800">Menu Rotation</h2>
                         <p className="text-gray-500 text-sm mt-1">
-                          Automatically change your menus at specific times. Never spend time manually swapping menus again.
+                          Automatically change your menu offerings at specific times. Control which menu sections are visible based on time of day and day of week.
                         </p>
                       </div>
                       
                       <div className="p-6">
                         <div className="space-y-6">
-                          {menuRotations.map((rotation) => (
-                            <div key={rotation.id} className="p-4 border border-gray-200 rounded-lg">
-                              <div className="flex items-start justify-between">
+                          {/* Editing Interface for Rotation */}
+                          {editingRotation && (
+                            <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 mb-6">
+                              <h3 className="text-lg font-medium text-gray-800 mb-4">
+                                {editingRotation.id ? 'Edit' : 'New'} Menu Rotation
+                              </h3>
+                              
+                              <div className="space-y-4">
                                 <div>
-                                  <div className="flex items-center">
-                                    <h3 className="font-medium text-gray-800">{rotation.name}</h3>
-                                    <div className={`ml-3 px-2 py-0.5 text-xs rounded-full ${rotation.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-                                      {rotation.isActive ? 'Active' : 'Inactive'}
-                                    </div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">Menu Name</label>
+                                  <input 
+                                    type="text"
+                                    value={editingRotation.name}
+                                    onChange={e => setEditingRotation({...editingRotation, name: e.target.value})}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                    placeholder="e.g. Breakfast Menu"
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                  <input 
+                                    type="text"
+                                    value={editingRotation.description}
+                                    onChange={e => setEditingRotation({...editingRotation, description: e.target.value})}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                    placeholder="Brief description of this menu"
+                                  />
+                                </div>
+                                
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                                    <input 
+                                      type="time"
+                                      value={editingRotation.startTime}
+                                      onChange={e => setEditingRotation({...editingRotation, startTime: e.target.value})}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                    />
                                   </div>
-                                  <div className="mt-1 text-sm text-gray-500">
-                                    {rotation.startTime} - {rotation.endTime}
-                                  </div>
-                                  <div className="mt-3 flex">
-                                    <WeekdaySelector 
-                                      selectedDays={rotation.days}
-                                      onChange={(days) => {
-                                        setMenuRotations(menuRotations.map(r => 
-                                          r.id === rotation.id ? { ...r, days } : r
-                                        ))
-                                      }}
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                                    <input 
+                                      type="time"
+                                      value={editingRotation.endTime}
+                                      onChange={e => setEditingRotation({...editingRotation, endTime: e.target.value})}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
                                     />
                                   </div>
                                 </div>
-                                <div className="flex space-x-2">
+                                
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">Active Days</label>
+                                  <WeekdaySelector 
+                                    selectedDays={editingRotation.days}
+                                    onChange={(days) => setEditingRotation({...editingRotation, days})}
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">Available Categories</label>
+                                  <div className="bg-white border border-gray-200 rounded-md max-h-64 overflow-y-auto p-3">
+                                    {isLoadingMenuItems ? (
+                                      <div className="flex justify-center py-4">
+                                        <svg className="animate-spin h-6 w-6 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                      </div>
+                                    ) : (
+                                      menuCategories.map(category => (
+                                        <div key={category.id} className="flex items-center mb-2 last:mb-0">
+                                          <input
+                                            type="checkbox"
+                                            id={`cat-${category.id}`}
+                                            checked={editingRotation.categories.includes(category.id)}
+                                            onChange={(e) => {
+                                              const checked = e.target.checked
+                                              setEditingRotation(prev => ({
+                                                ...prev,
+                                                categories: checked 
+                                                  ? [...prev.categories, category.id]
+                                                  : prev.categories.filter(id => id !== category.id)
+                                              }))
+                                            }}
+                                            className="rounded text-blue-600 focus:ring-blue-500 mr-2"
+                                          />
+                                          <label htmlFor={`cat-${category.id}`} className="text-sm text-gray-700">
+                                            {category.name} <span className="text-xs text-gray-500">({category.menuItems.length} items)</span>
+                                          </label>
+                                        </div>
+                                      ))
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-gray-500 mt-2">
+                                    Only selected categories will be visible to customers during this time slot.
+                                  </p>
+                                </div>
+                                
+                                <div className="flex space-x-3 pt-3">
                                   <button
-                                    onClick={() => toggleMenuRotationActive(rotation.id)}
-                                    className={`p-2 rounded-lg ${rotation.isActive ? 'text-gray-700 hover:bg-gray-100' : 'text-blue-700 hover:bg-blue-50'}`}
+                                    onClick={() => setEditingRotation(null)}
+                                    className="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
                                   >
-                                    {rotation.isActive ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                    Cancel
+                                  </button>
+                                  {editingRotation.id && (
+                                    <button
+                                      onClick={() => handleDeleteRotation(editingRotation.id)}
+                                      className="px-4 py-2 bg-red-50 border border-red-300 rounded-md text-red-700 hover:bg-red-100"
+                                    >
+                                      Delete
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleSaveRotation(editingRotation)}
+                                    className="flex-1 px-4 py-2 text-white rounded-md"
+                                    style={{ backgroundColor: colors.primary }}
+                                  >
+                                    Save Changes
                                   </button>
                                 </div>
                               </div>
                             </div>
-                          ))}
+                          )}
                           
-                          <button
-                            onClick={handleAddMenuRotation}
-                            className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:text-gray-800 hover:border-gray-400 transition-colors flex items-center justify-center"
-                          >
-                            <Plus className="w-5 h-5 mr-2" />
-                            Add New Menu Rotation
-                          </button>
+                          {/* Menu Rotation Cards */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {menuRotations.map((rotation) => (
+                              <div 
+                                key={rotation.id} 
+                                className={`p-4 border ${rotation.isActive ? 'border-blue-200 bg-blue-50' : 'border-gray-200 bg-gray-50'} rounded-lg hover:shadow-md transition-shadow cursor-pointer`}
+                                onClick={() => setEditingRotation(rotation)}
+                              >
+                                <div className="flex items-start">
+                                  <div 
+                                    className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${rotation.isActive ? 'bg-blue-100 text-blue-600' : 'bg-gray-200 text-gray-500'}`}
+                                  >
+                                    <Coffee className="w-5 h-5" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center justify-between">
+                                      <h3 className="font-medium text-gray-800">{rotation.name}</h3>
+                                      <div className={`ml-3 px-2 py-0.5 text-xs rounded-full ${rotation.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                                        {rotation.isActive ? 'Active' : 'Inactive'}
+                                      </div>
+                                    </div>
+                                    <p className="text-sm text-gray-600 mt-1 line-clamp-1">{rotation.description}</p>
+                                    <div className="flex items-center justify-between mt-3">
+                                      <div className="flex items-center text-xs text-gray-600">
+                                        <Clock className="w-3 h-3 mr-1" />
+                                        {rotation.startTime} - {rotation.endTime}
+                                      </div>
+                                      <div className="text-xs text-gray-600">
+                                        {rotation.categories.length} categories
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between items-center">
+                                  <div className="flex space-x-1">
+                                    {rotation.days.includes('mon') && <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center text-xs">M</span>}
+                                    {rotation.days.includes('tue') && <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center text-xs">T</span>}
+                                    {rotation.days.includes('wed') && <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center text-xs">W</span>}
+                                    {rotation.days.includes('thu') && <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center text-xs">T</span>}
+                                    {rotation.days.includes('fri') && <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center text-xs">F</span>}
+                                    {rotation.days.includes('sat') && <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center text-xs">S</span>}
+                                    {rotation.days.includes('sun') && <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center text-xs">S</span>}
+                                  </div>
+                                  <div className="flex space-x-1">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        toggleMenuRotationActive(rotation.id)
+                                      }}
+                                      className={`p-1.5 rounded ${rotation.isActive ? 'text-red-500 hover:bg-red-50' : 'text-green-500 hover:bg-green-50'}`}
+                                    >
+                                      {rotation.isActive ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+
+                            {/* Add New Menu Rotation Card */}
+                            <button
+                              onClick={handleAddMenuRotation}
+                              className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex flex-col items-center justify-center"
+                            >
+                              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-2">
+                                <Plus className="w-5 h-5 text-gray-600" />
+                              </div>
+                              <p className="text-sm font-medium text-gray-700">Add New Menu Rotation</p>
+                              <p className="text-xs text-gray-500 mt-1">Create time-based menu availability</p>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -3488,14 +4059,24 @@ export default function Dashboard() {
                         <div>
                           <h3 className="font-medium text-blue-900 mb-1">How Menu Rotation Works</h3>
                           <p className="text-blue-800 text-sm">
-                            Set up different menus to automatically display at specific times of the day. Perfect for breakfast, lunch, dinner, and special occasions. Your customers will always see the right menu at the right time.
+                            Control which menu sections are visible at different times. For example, show breakfast items in the morning, lunch menu during midday, and dinner options in the evening.
                           </p>
-                          <div className="mt-3">
-                            <button
-                              className="text-sm font-medium text-blue-600 hover:text-blue-800"
-                            >
-                              Learn more about menu rotation
-                            </button>
+                          <div className="mt-4 bg-white p-3 rounded-lg border border-blue-200">
+                            <h4 className="text-sm font-medium text-gray-700 mb-2">Tips for Effective Menu Rotation</h4>
+                            <ul className="text-xs text-gray-600 space-y-1">
+                              <li className="flex items-start">
+                                <span className="text-blue-500 mr-1">•</span>
+                                <span>Define separate rotations for breakfast, lunch, and dinner times</span>
+                              </li>
+                              <li className="flex items-start">
+                                <span className="text-blue-500 mr-1">•</span>
+                                <span>Create weekend-specific menus for special brunch offerings</span>
+                              </li>
+                              <li className="flex items-start">
+                                <span className="text-blue-500 mr-1">•</span>
+                                <span>Ensure time slots don't overlap to avoid confusion about which menu applies</span>
+                              </li>
+                            </ul>
                           </div>
                         </div>
                       </div>
@@ -3506,65 +4087,431 @@ export default function Dashboard() {
                 {/* Dynamic Pricing Section */}
                 {activeSmartMenuTab === 'pricing' && (
                   <div className="space-y-6">
+                    {/* Active Pricing Rules Status */}
+                    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                      <div className="p-6">
+                        <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                          <Percent className="w-5 h-5 mr-2 text-amber-600" />
+                          Active Pricing Rules
+                        </h2>
+                        
+                        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-4">
+                          {dynamicPricingRules.filter(rule => 
+                            rule.isActive && 
+                            rule.days.includes(['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][new Date().getDay()])
+                          ).length > 0 ? (
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <h3 className="font-medium text-gray-800">Price Adjustments in Effect</h3>
+                                <span className="text-sm bg-amber-100 text-amber-800 px-2 py-1 rounded-full">
+                                  {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                              
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {dynamicPricingRules.filter(rule => 
+                                  rule.isActive && 
+                                  rule.days.includes(['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][new Date().getDay()])
+                                ).map(rule => (
+                                  <div key={rule.id} className="flex items-center bg-white p-2 rounded-lg border border-amber-100">
+                                    <div 
+                                      className={`w-8 h-8 rounded-full flex items-center justify-center mr-2 ${
+                                        rule.adjustment > 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                                      }`}
+                                    >
+                                      {rule.adjustment > 0 ? <TrendingUp className="w-4 h-4" /> : <Minus className="w-4 h-4" />}
+                                    </div>
+                                    <div>
+                                      <div className="text-sm font-medium text-gray-800">{rule.name}</div>
+                                      <div className="text-xs text-gray-500">
+                                        {rule.applyTo === 'categories' 
+                                          ? `${rule.categories.map(c => menuCategories.find(cat => cat.id === c)?.name).join(', ')}`
+                                          : `${rule.itemIds.length} specific items`
+                                        }
+                                      </div>
+                                    </div>
+                                    <div className="ml-auto">
+                                      <span 
+                                        className={`text-sm font-medium rounded-md px-2 py-1 ${
+                                          rule.adjustment > 0 
+                                            ? 'bg-green-50 text-green-800'
+                                            : 'bg-red-50 text-red-800'
+                                        }`}
+                                      >
+                                        {rule.adjustment > 0 ? '+' : ''}{rule.adjustment}%
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                              
+                              {/* Price Example */}
+                              <div className="bg-white p-3 rounded-lg border border-amber-100 mt-3">
+                                <h4 className="text-sm font-medium text-gray-700 mb-2">Sample Price Adjustments</h4>
+                                <div className="text-sm text-gray-600">
+                                  {allMenuItems.length > 0 && (
+                                    <ul className="space-y-2">
+                                      {allMenuItems.filter(item => 
+                                        dynamicPricingRules.some(rule => 
+                                          rule.isActive && 
+                                          rule.days.includes(['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][new Date().getDay()]) &&
+                                          ((rule.applyTo === 'categories' && rule.categories.includes(item.category)) ||
+                                           (rule.applyTo === 'items' && rule.itemIds.includes(item.id)))
+                                        )
+                                      ).slice(0, 3).map(item => (
+                                        <li key={item.id} className="flex justify-between items-center py-1 border-b border-gray-100 last:border-0">
+                                          <span>{item.name}</span>
+                                          <div className="flex items-center">
+                                            <span className="text-gray-400 line-through mr-2">${item.price.toFixed(2)}</span>
+                                            <span className="font-medium" style={{ color: colors.primary }}>
+                                              ${getAdjustedPrice(item.price, item.id, item.category)}
+                                            </span>
+                                          </div>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-center py-4">
+                              <div className="text-center">
+                                <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                  <AlertTriangle className="w-6 h-6 text-amber-600" />
+                                </div>
+                                <h3 className="font-medium text-gray-800 mb-1">No Active Pricing Rules</h3>
+                                <p className="text-sm text-gray-600">
+                                  No pricing adjustments are currently active based on your rules.
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    
                     <div className="bg-white rounded-xl shadow-sm overflow-hidden">
                       <div className="p-6 border-b border-gray-100">
                         <h2 className="text-xl font-semibold text-gray-800">Dynamic Pricing</h2>
                         <p className="text-gray-500 text-sm mt-1">
-                          Automatically adapt your pricing to match the moment and increase your revenue. Don't leave any more margins on the table.
+                          Automatically adjust menu prices based on time of day, day of week, or special occasions. Increase revenue with smart pricing strategies.
                         </p>
                       </div>
                       
                       <div className="p-6">
                         <div className="space-y-6">
-                          {dynamicPricingRules.map((rule) => (
-                            <div key={rule.id} className="p-4 border border-gray-200 rounded-lg">
-                              <div className="flex items-start justify-between">
+                          {/* Editing Interface for Pricing Rule */}
+                          {editingPricingRule && (
+                            <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 mb-6">
+                              <h3 className="text-lg font-medium text-gray-800 mb-4">
+                                {editingPricingRule.id ? 'Edit' : 'New'} Pricing Rule
+                              </h3>
+                              
+                              <div className="space-y-4">
                                 <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">Rule Name</label>
+                                  <input 
+                                    type="text"
+                                    value={editingPricingRule.name}
+                                    onChange={e => setEditingPricingRule({...editingPricingRule, name: e.target.value})}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                    placeholder="e.g. Happy Hour"
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                  <input 
+                                    type="text"
+                                    value={editingPricingRule.description}
+                                    onChange={e => setEditingPricingRule({...editingPricingRule, description: e.target.value})}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                    placeholder="Brief description of this pricing rule"
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">Price Adjustment (%)</label>
                                   <div className="flex items-center">
-                                    <h3 className="font-medium text-gray-800">{rule.name}</h3>
-                                    <div className={`ml-3 px-2 py-0.5 text-xs rounded-full ${rule.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-                                      {rule.isActive ? 'Active' : 'Inactive'}
-                                    </div>
-                                  </div>
-                                  <div className="mt-1 text-sm text-gray-500">
-                                    {rule.startTime} - {rule.endTime}
-                                  </div>
-                                  <div className="mt-2 inline-block px-3 py-1 rounded-full text-sm font-medium" style={{
-                                    backgroundColor: rule.adjustment > 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                                    color: rule.adjustment > 0 ? 'rgb(16, 185, 129)' : 'rgb(239, 68, 68)'
-                                  }}>
-                                    {rule.adjustment > 0 ? '+' : ''}{rule.adjustment}% Price Adjustment
-                                  </div>
-                                  <div className="mt-3 flex">
-                                    <WeekdaySelector 
-                                      selectedDays={rule.days}
-                                      onChange={(days) => {
-                                        setDynamicPricingRules(dynamicPricingRules.map(r => 
-                                          r.id === rule.id ? { ...r, days } : r
-                                        ))
+                                    <button
+                                      onClick={() => setEditingPricingRule({...editingPricingRule, adjustment: -Math.abs(editingPricingRule.adjustment || 0)})}
+                                      className={`px-3 py-2 border ${editingPricingRule.adjustment <= 0 ? 'border-red-300 bg-red-50 text-red-700' : 'border-gray-300 bg-gray-50 text-gray-700'} rounded-l-md`}
+                                    >
+                                      Discount
+                                    </button>
+                                    <button
+                                      onClick={() => setEditingPricingRule({...editingPricingRule, adjustment: Math.abs(editingPricingRule.adjustment || 0)})}
+                                      className={`px-3 py-2 border ${editingPricingRule.adjustment > 0 ? 'border-green-300 bg-green-50 text-green-700' : 'border-gray-300 bg-gray-50 text-gray-700'} rounded-r-md`}
+                                    >
+                                      Premium
+                                    </button>
+                                    <input 
+                                      type="number"
+                                      value={Math.abs(editingPricingRule.adjustment || 0)}
+                                      onChange={e => {
+                                        const value = Math.abs(parseFloat(e.target.value) || 0)
+                                        setEditingPricingRule({
+                                          ...editingPricingRule, 
+                                          adjustment: editingPricingRule.adjustment < 0 ? -value : value
+                                        })
                                       }}
+                                      className="w-24 ml-3 px-3 py-2 border border-gray-300 rounded-md"
+                                      step="0.1"
+                                      min="0"
+                                    />
+                                    <span className="ml-1 text-xl">%</span>
+                                  </div>
+                                </div>
+                                
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                                    <input 
+                                      type="time"
+                                      value={editingPricingRule.startTime}
+                                      onChange={e => setEditingPricingRule({...editingPricingRule, startTime: e.target.value})}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                                    <input 
+                                      type="time"
+                                      value={editingPricingRule.endTime}
+                                      onChange={e => setEditingPricingRule({...editingPricingRule, endTime: e.target.value})}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
                                     />
                                   </div>
                                 </div>
-                                <div className="flex space-x-2">
+                                
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">Active Days</label>
+                                  <WeekdaySelector 
+                                    selectedDays={editingPricingRule.days}
+                                    onChange={(days) => setEditingPricingRule({...editingPricingRule, days})}
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">Apply To</label>
+                                  <div className="flex space-x-4 mb-3">
+                                    <label className="flex items-center">
+                                      <input
+                                        type="radio"
+                                        checked={editingPricingRule.applyTo === 'categories'}
+                                        onChange={() => setEditingPricingRule({...editingPricingRule, applyTo: 'categories'})}
+                                        className="mr-2"
+                                      />
+                                      <span className="text-sm text-gray-700">Entire Categories</span>
+                                    </label>
+                                    <label className="flex items-center">
+                                      <input
+                                        type="radio"
+                                        checked={editingPricingRule.applyTo === 'items'}
+                                        onChange={() => setEditingPricingRule({...editingPricingRule, applyTo: 'items'})}
+                                        className="mr-2"
+                                      />
+                                      <span className="text-sm text-gray-700">Specific Items</span>
+                                    </label>
+                                  </div>
+                                  
+                                  {editingPricingRule.applyTo === 'categories' ? (
+                                    <div className="bg-white border border-gray-200 rounded-md max-h-64 overflow-y-auto p-3">
+                                      {isLoadingMenuItems ? (
+                                        <div className="flex justify-center py-4">
+                                          <svg className="animate-spin h-6 w-6 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                          </svg>
+                                        </div>
+                                      ) : (
+                                        menuCategories.map(category => (
+                                          <div key={category.id} className="flex items-center mb-2 last:mb-0">
+                                            <input
+                                              type="checkbox"
+                                              id={`price-cat-${category.id}`}
+                                              checked={editingPricingRule.categories.includes(category.id)}
+                                              onChange={(e) => {
+                                                const checked = e.target.checked
+                                                setEditingPricingRule(prev => ({
+                                                  ...prev,
+                                                  categories: checked 
+                                                    ? [...prev.categories, category.id]
+                                                    : prev.categories.filter(id => id !== category.id)
+                                                }))
+                                              }}
+                                              className="rounded text-blue-600 focus:ring-blue-500 mr-2"
+                                            />
+                                            <label htmlFor={`price-cat-${category.id}`} className="text-sm text-gray-700">
+                                              {category.name} <span className="text-xs text-gray-500">({category.menuItems.length} items)</span>
+                                            </label>
+                                          </div>
+                                        ))
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <div className="bg-white border border-gray-200 rounded-md max-h-64 overflow-y-auto p-3">
+                                      {isLoadingMenuItems ? (
+                                        <div className="flex justify-center py-4">
+                                          <svg className="animate-spin h-6 w-6 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                          </svg>
+                                        </div>
+                                      ) : (
+                                        <div>
+                                          {menuCategories.map(category => (
+                                            <div key={category.id} className="mb-3 last:mb-0">
+                                              <h4 className="text-sm font-medium text-gray-700 mb-1">{category.name}</h4>
+                                              <div className="pl-2 space-y-1 border-l-2 border-gray-100">
+                                                {category.menuItems.map(item => (
+                                                  <div key={item.id} className="flex items-center justify-between">
+                                                    <div className="flex items-center">
+                                                      <input
+                                                        type="checkbox"
+                                                        id={`price-item-${item.id}`}
+                                                        checked={editingPricingRule.itemIds.includes(item.id)}
+                                                        onChange={(e) => {
+                                                          const checked = e.target.checked
+                                                          setEditingPricingRule(prev => ({
+                                                            ...prev,
+                                                            itemIds: checked 
+                                                              ? [...prev.itemIds, item.id]
+                                                              : prev.itemIds.filter(id => id !== item.id)
+                                                          }))
+                                                        }}
+                                                        className="rounded text-blue-600 focus:ring-blue-500 mr-2"
+                                                      />
+                                                      <label htmlFor={`price-item-${item.id}`} className="text-sm text-gray-700">
+                                                        {item.name}
+                                                      </label>
+                                                    </div>
+                                                    <span className="text-xs text-gray-500">${item.price.toFixed(2)}</span>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                  
+                                  <p className="text-xs text-gray-500 mt-2">
+                                    Pricing adjustments will only apply to the selected items or categories.
+                                  </p>
+                                </div>
+                                
+                                <div className="flex space-x-3 pt-3">
                                   <button
-                                    onClick={() => togglePricingRuleActive(rule.id)}
-                                    className={`p-2 rounded-lg ${rule.isActive ? 'text-gray-700 hover:bg-gray-100' : 'text-blue-700 hover:bg-blue-50'}`}
+                                    onClick={() => setEditingPricingRule(null)}
+                                    className="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
                                   >
-                                    {rule.isActive ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                    Cancel
+                                  </button>
+                                  {editingPricingRule.id && (
+                                    <button
+                                      onClick={() => handleDeletePricingRule(editingPricingRule.id)}
+                                      className="px-4 py-2 bg-red-50 border border-red-300 rounded-md text-red-700 hover:bg-red-100"
+                                    >
+                                      Delete
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleSavePricingRule(editingPricingRule)}
+                                    className="flex-1 px-4 py-2 text-white rounded-md"
+                                    style={{ backgroundColor: colors.primary }}
+                                  >
+                                    Save Changes
                                   </button>
                                 </div>
                               </div>
                             </div>
-                          ))}
+                          )}
                           
-                          <button
-                            onClick={handleAddPricingRule}
-                            className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:text-gray-800 hover:border-gray-400 transition-colors flex items-center justify-center"
-                          >
-                            <Plus className="w-5 h-5 mr-2" />
-                            Add New Pricing Rule
-                          </button>
+                          {/* Pricing Rule Cards */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {dynamicPricingRules.map((rule) => (
+                              <div 
+                                key={rule.id} 
+                                className={`p-4 border ${rule.isActive ? rule.adjustment > 0 ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50' : 'border-gray-200 bg-gray-50'} rounded-lg hover:shadow-md transition-shadow cursor-pointer`}
+                                onClick={() => setEditingPricingRule(rule)}
+                              >
+                                <div className="flex items-start">
+                                  <div 
+                                    className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${
+                                      rule.isActive 
+                                        ? rule.adjustment > 0 
+                                          ? 'bg-green-100 text-green-600' 
+                                          : 'bg-red-100 text-red-600'
+                                        : 'bg-gray-200 text-gray-500'
+                                    }`}
+                                  >
+                                    {rule.adjustment > 0 ? <TrendingUp className="w-5 h-5" /> : <Minus className="w-5 h-5" />}
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center justify-between">
+                                      <h3 className="font-medium text-gray-800">{rule.name}</h3>
+                                      <div className={`ml-3 px-2 py-0.5 text-xs rounded-full ${rule.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                                        {rule.isActive ? 'Active' : 'Inactive'}
+                                      </div>
+                                    </div>
+                                    <p className="text-sm text-gray-600 mt-1 line-clamp-1">{rule.description}</p>
+                                    <div className="flex items-center justify-between mt-3">
+                                      <div className="flex items-center text-xs text-gray-600">
+                                        <Clock className="w-3 h-3 mr-1" />
+                                        {rule.startTime} - {rule.endTime}
+                                      </div>
+                                      <div 
+                                        className={`text-xs font-medium px-2 py-0.5 rounded ${
+                                          rule.adjustment > 0 
+                                            ? 'bg-green-100 text-green-700' 
+                                            : 'bg-red-100 text-red-700'
+                                        }`}
+                                      >
+                                        {rule.adjustment > 0 ? '+' : ''}{rule.adjustment}%
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between items-center">
+                                  <div className="flex space-x-1">
+                                    {rule.days.includes('mon') && <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center text-xs">M</span>}
+                                    {rule.days.includes('tue') && <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center text-xs">T</span>}
+                                    {rule.days.includes('wed') && <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center text-xs">W</span>}
+                                    {rule.days.includes('thu') && <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center text-xs">T</span>}
+                                    {rule.days.includes('fri') && <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center text-xs">F</span>}
+                                    {rule.days.includes('sat') && <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center text-xs">S</span>}
+                                    {rule.days.includes('sun') && <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center text-xs">S</span>}
+                                  </div>
+                                  <div className="flex space-x-1">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        togglePricingRuleActive(rule.id)
+                                      }}
+                                      className={`p-1.5 rounded ${rule.isActive ? 'text-red-500 hover:bg-red-100' : 'text-green-500 hover:bg-green-100'}`}
+                                    >
+                                      {rule.isActive ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+
+                            {/* Add New Pricing Rule Card */}
+                            <button
+                              onClick={handleAddPricingRule}
+                              className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex flex-col items-center justify-center"
+                            >
+                              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-2">
+                                <Plus className="w-5 h-5 text-gray-600" />
+                              </div>
+                              <p className="text-sm font-medium text-gray-700">Add New Pricing Rule</p>
+                              <p className="text-xs text-gray-500 mt-1">Create time-based price adjustments</p>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -3577,14 +4524,24 @@ export default function Dashboard() {
                         <div>
                           <h3 className="font-medium text-amber-900 mb-1">How Dynamic Pricing Works</h3>
                           <p className="text-amber-800 text-sm">
-                            Create rules to automatically adjust menu prices based on time of day, day of week, or special events. Perfect for happy hours, weekend premiums, or slow period discounts to maximize your profits.
+                            Automatically adjust menu prices based on time of day, day of week, or special occasions. Increase revenue with happy hour discounts or weekend premiums.
                           </p>
-                          <div className="mt-3">
-                            <button
-                              className="text-sm font-medium text-amber-600 hover:text-amber-800"
-                            >
-                              Learn more about dynamic pricing
-                            </button>
+                          <div className="mt-4 bg-white p-3 rounded-lg border border-amber-200">
+                            <h4 className="text-sm font-medium text-gray-700 mb-2">Popular Pricing Strategies</h4>
+                            <ul className="text-xs text-gray-600 space-y-1">
+                              <li className="flex items-start">
+                                <span className="text-amber-500 mr-1">•</span>
+                                <span><b>Happy Hour:</b> -15% on drinks from 4-6pm on weekdays</span>
+                              </li>
+                              <li className="flex items-start">
+                                <span className="text-amber-500 mr-1">•</span>
+                                <span><b>Weekend Premium:</b> +10% on special dishes Friday and Saturday nights</span>
+                              </li>
+                              <li className="flex items-start">
+                                <span className="text-amber-500 mr-1">•</span>
+                                <span><b>Early Bird:</b> -10% on all items from 5-6pm to attract early diners</span>
+                              </li>
+                            </ul>
                           </div>
                         </div>
                       </div>
