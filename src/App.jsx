@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { LanguageProvider } from './contexts/LanguageContext'
 import { ThemeProvider } from './contexts/ThemeContext'
+import WelcomePage from './pages/WelcomePage'
 import TableInput from './pages/TableInput'
 import ChoicePage from './pages/ChoicePage'
 import Menu from './pages/Menu'
@@ -18,7 +19,8 @@ function App() {
         <Router>
           <Routes>
             {/* Public Routes */}
-            <Route path="/" element={<TableInput />} />
+            <Route path="/" element={<WelcomePage />} />
+            <Route path="/table" element={<TableInput />} />
             <Route path="/choice/:tableNumber" element={<ChoicePage />} />
             <Route path="/menu/:tableNumber" element={<Menu />} />
             <Route path="/payment" element={<Payment />} />

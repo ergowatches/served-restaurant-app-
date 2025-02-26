@@ -566,10 +566,13 @@ export default function Menu() {
   
   return (
     <div className="min-h-screen bg-gray-50">
-{/* Enhanced Mobile Header - Reliable with Better Styling */}
+{/* Enhanced Mobile Header */}
 <header
   style={{ 
-    backgroundColor: theme.primary,
+    backgroundColor: theme.banner ? 'transparent' : theme.primary,
+    backgroundImage: theme.banner ? `url(${theme.banner})` : 'none',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
     position: 'sticky',
     top: 0,
     zIndex: 30,
@@ -577,227 +580,69 @@ export default function Menu() {
     boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
   }}
 >
-  {/* Menu Bar - Reliable Table Layout with Better Styling */}
-  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-    <tbody>
-      <tr>
-        <td style={{ width: '48px', padding: '14px 8px' }}>
-          <button 
-            onClick={() => navigate('/')}
-            style={{
-              width: '40px',
-              height: '40px',
-              backgroundColor: 'rgba(255, 255, 255, 0.25)',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: 'none',
-              cursor: 'pointer',
-              transition: 'background-color 0.2s ease',
-              WebkitTapHighlightColor: 'transparent'
-            }}
-            onMouseDown={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.35)'}
-            onMouseUp={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)'}
-            onTouchStart={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.35)'}
-            onTouchEnd={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)'}
-          >
-            <ArrowLeft color="white" size={20} />
-          </button>
-        </td>
-        
-        <td style={{ textAlign: theme.logoPosition === 'center' ? 'center' : 'left', padding: '4px 0' }}>
-          {theme.logo && (
-            <div style={{
-              display: 'inline-block',
-              width: theme.logoSize === 'small' ? '32px' : theme.logoSize === 'medium' ? '40px' : '48px',
-              height: theme.logoSize === 'small' ? '32px' : theme.logoSize === 'medium' ? '40px' : '48px',
-              backgroundColor: 'rgba(255, 255, 255, 0.3)',
-              backdropFilter: 'blur(4px)',
-              WebkitBackdropFilter: 'blur(4px)',
-              borderRadius: theme.logoShape === 'circle' ? '50%' : '6px',
-              padding: '4px',
-              overflow: 'hidden',
-              verticalAlign: 'middle',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
-            }}>
-              <img 
-                src={theme.logo} 
-                alt="Restaurant logo" 
-                style={{
-                  width: theme.logoShape === 'circle' ? '100%' : 'auto',
-                  height: '100%',
-                  objectFit: theme.logoShape === 'circle' ? 'cover' : 'contain',
-                  display: 'block'
-                }}
-              />
-            </div>
-          )}
-        </td>
-        
-        <td style={{ width: '98px', textAlign: 'right', padding: '14px 8px' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-            <button 
-              onClick={toggleSearch}
-              style={{
-                width: '40px',
-                height: '40px',
-                backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'background-color 0.2s ease',
-                WebkitTapHighlightColor: 'transparent'
-              }}
-              onMouseDown={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.35)'}
-              onMouseUp={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)'}
-              onTouchStart={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.35)'}
-              onTouchEnd={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)'}
-            >
-              {isSearchOpen ? <X color="white" size={20} /> : <Search color="white" size={20} />}
-            </button>
-            
-            <div style={{ position: 'relative' }}>
-              <button 
-                onClick={() => {
-                  const dropdown = document.getElementById('language-dropdown');
-                  if (dropdown) {
-                    if (dropdown.style.display === 'block') {
-                      dropdown.style.opacity = '0';
-                      dropdown.style.transform = 'translateY(10px)';
-                      setTimeout(() => { dropdown.style.display = 'none'; }, 200);
-                    } else {
-                      dropdown.style.display = 'block';
-                      setTimeout(() => {
-                        dropdown.style.opacity = '1';
-                        dropdown.style.transform = 'translateY(0)';
-                      }, 10);
-                    }
-                  }
-                }}
-                style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                  borderRadius: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '6px 12px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s ease',
-                  WebkitTapHighlightColor: 'transparent'
-                }}
-                onMouseDown={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.35)'}
-                onMouseUp={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)'}
-                onTouchStart={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.35)'}
-                onTouchEnd={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)'}
-              >
-                <Globe color="white" size={16} />
-                <span style={{ 
-                  color: 'white', 
-                  marginLeft: '4px', 
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  display: 'none'
-                }}>
-                  {language.toUpperCase()}
-                </span>
-              </button>
-              
-              <div 
-                id="language-dropdown"
-                style={{
-                  display: 'none',
-                  opacity: '0',
-                  position: 'absolute',
-                  right: 0,
-                  top: '44px',
-                  backgroundColor: 'white',
-                  borderRadius: '12px',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-                  width: '140px',
-                  zIndex: 50,
-                  padding: '6px 0',
-                  transition: 'opacity 0.2s ease, transform 0.2s ease',
-                  transform: 'translateY(10px)'
-                }}
-              >
-                {[
-                  { code: 'en', name: 'English' },
-                  { code: 'es', name: 'Español' },
-                  { code: 'nl', name: 'Nederlands' }
-                ].map(lang => (
-                  <button
-                    key={lang.code}
-                    onClick={() => {
-                      setLanguage(lang.code);
-                      const dropdown = document.getElementById('language-dropdown');
-                      if (dropdown) {
-                        dropdown.style.opacity = '0';
-                        dropdown.style.transform = 'translateY(10px)';
-                        setTimeout(() => { dropdown.style.display = 'none'; }, 200);
-                      }
-                    }}
-                    style={{
-                      width: '100%',
-                      textAlign: 'left',
-                      padding: '10px 16px',
-                      border: 'none',
-                      backgroundColor: language === lang.code ? '#f9fafb' : 'transparent',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: language === lang.code ? '600' : '400',
-                      color: language === lang.code ? theme.primary : '#4b5563',
-                      transition: 'background-color 0.15s ease',
-                      borderLeft: language === lang.code ? `3px solid ${theme.primary}` : '3px solid transparent'
-                    }}
-                    onMouseOver={(e) => { 
-                      if (language !== lang.code) e.currentTarget.style.backgroundColor = '#f3f4f6'; 
-                    }}
-                    onMouseOut={(e) => { 
-                      if (language !== lang.code) e.currentTarget.style.backgroundColor = 'transparent'; 
-                    }}
-                  >
-                    {lang.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+  {/* Menu Bar */}
+  <div className="flex items-center justify-between px-4 py-4">
+    <button 
+      onClick={() => navigate(-1)}
+      className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-sm"
+      aria-label="Go back"
+    >
+      <ArrowLeft className="w-5 h-5 text-white" />
+    </button>
+    
+    {/* Logo */}
+    {theme.logo && (
+      <div 
+        className={`
+          ${theme.logoPosition === 'left' ? 'absolute left-16' : 
+            'absolute left-1/2 transform -translate-x-1/2'}
+        `}
+      >
+        <div 
+          className={`
+            ${theme.logoShape === 'circle' ? 'rounded-full overflow-hidden' : ''}
+            ${theme.logoSize === 'small' ? 'h-8 w-8' : 
+              theme.logoSize === 'medium' ? 'h-10 w-10' : 
+              'h-12 w-12'}
+            flex items-center justify-center bg-white/20 backdrop-blur-sm p-1
+          `}
+        >
+          <img 
+            src={theme.logo} 
+            alt="Restaurant logo" 
+            className={`
+              ${theme.logoShape === 'circle' ? 'h-full w-full object-cover' : 'h-full w-auto object-contain'}
+            `}
+          />
+        </div>
+      </div>
+    )}
+    
+    <div className="flex space-x-2">
+      <button 
+        onClick={toggleSearch}
+        className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-sm"
+        aria-label={isSearchOpen ? "Close search" : "Search menu"}
+      >
+        {isSearchOpen ? <X className="w-5 h-5 text-white" /> : <Search className="w-5 h-5 text-white" />}
+      </button>
+      
+      <EnhancedLanguageSwitcher 
+        currentLanguage={language} 
+        onLanguageChange={setLanguage} 
+      />
+    </div>
+  </div>
   
   {/* Welcome Banner */}
   {showWelcome && !isSearchOpen && (
-    <div style={{
-      textAlign: 'center',
-      padding: '12px 0 16px 0',
-      background: `linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0.1))`,
-    }}>
-      <h1 style={{
-        fontSize: '24px', 
-        fontWeight: 'bold',
-        color: 'white',
-        marginBottom: '8px',
-        textShadow: '0 1px 3px rgba(0,0,0,0.2)'
-      }}>
+    <div className="text-center py-4 px-4 bg-gradient-to-b from-transparent to-black/10">
+      <h1 className="text-xl font-bold text-white mb-2">
         {t('header.welcome')}
       </h1>
-      <div style={{
-        display: 'inline-block',
-        backgroundColor: 'rgba(255, 255, 255, 0.25)',
-        backdropFilter: 'blur(4px)',
-        WebkitBackdropFilter: 'blur(4px)',
-        padding: '6px 16px',
-        borderRadius: '20px',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
-      }}>
-        <p style={{ color: 'white', fontSize: '14px' }}>
-          Table <span style={{ fontWeight: 'bold' }}>{tableNumber}</span>
+      <div className="inline-block bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
+        <p className="text-white text-sm">
+          Table <span className="font-bold">{tableNumber}</span>
         </p>
       </div>
     </div>
@@ -805,21 +650,10 @@ export default function Menu() {
   
   {/* Search Input */}
   {isSearchOpen && (
-    <div style={{ 
-      padding: '0 16px 16px 16px',
-      animation: 'fadeIn 0.2s ease-out'
-    }}>
-      <div style={{ 
-        position: 'relative',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
-      }}>
-        <div style={{ 
-          position: 'absolute',
-          left: '16px',
-          top: '50%',
-          transform: 'translateY(-50%)'
-        }}>
-          <Search color="#9ca3af" size={20} />
+    <div className="px-4 pb-4">
+      <div className="relative">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <Search className="w-5 h-5 text-gray-400" />
         </div>
         <input
           ref={searchInputRef}
@@ -827,54 +661,22 @@ export default function Menu() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search menu..."
-          style={{
-            width: '100%',
-            padding: '14px 44px 14px 48px',
-            backgroundColor: 'rgba(255, 255, 255, 0.98)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-            borderRadius: '12px',
-            border: 'none',
-            fontSize: '16px',
-            color: '#374151',
-            outline: 'none'
+          className="w-full pl-10 pr-10 py-3 bg-white/95 backdrop-blur-sm rounded-xl border-0 shadow-md focus:ring-2 focus:ring-opacity-50"
+          style={{ 
+            '--tw-ring-color': `${theme.primary}80`
           }}
         />
         {searchQuery && (
           <button
             onClick={() => setSearchQuery('')}
-            style={{
-              position: 'absolute',
-              right: '16px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              width: '24px',
-              height: '24px',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: '#f3f4f6'
-            }}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center"
           >
-            <X color="#9ca3af" size={16} />
+            <X className="w-5 h-5 text-gray-400" />
           </button>
         )}
       </div>
     </div>
   )}
-
-  <style>
-    {`
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-    `}
-  </style>
 </header>
       
       {/* Category Navigation */}

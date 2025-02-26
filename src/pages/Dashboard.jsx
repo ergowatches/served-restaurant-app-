@@ -36,7 +36,11 @@ import {
   Plus,
   Minus,
   MoreHorizontal,
-  ShoppingBag
+  ShoppingBag,
+  Layout,
+  Type,
+  MessageCircle,
+  FileImage
 } from 'lucide-react'
 
 export default function Dashboard() {
@@ -60,23 +64,35 @@ export default function Dashboard() {
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState('success')
   
+  // Welcome page states
+  const [welcomeBackground, setWelcomeBackground] = useState(theme.welcomeBackground || null)
+  const [isEditingWelcomeBackground, setIsEditingWelcomeBackground] = useState(false)
+  const [welcomeTitle, setWelcomeTitle] = useState(theme.welcomeTitle || 'Welcome to Our Restaurant')
+  const [welcomeSubtitle, setWelcomeSubtitle] = useState(theme.welcomeSubtitle || 'Scan the QR code to view our menu')
+  
   // Image editor states
   const [zoom, setZoom] = useState(theme.logoZoom || 1)
   const [position, setPosition] = useState(theme.logoOffset || { x: 0, y: 0 })
   const [bannerZoom, setBannerZoom] = useState(theme.bannerZoom || 1)
   const [bannerPosition, setBannerPosition] = useState(theme.bannerOffset || { x: 0, y: 0 })
+  const [welcomeBackgroundZoom, setWelcomeBackgroundZoom] = useState(theme.welcomeBackgroundZoom || 1)
+  const [welcomeBackgroundPosition, setWelcomeBackgroundPosition] = useState(theme.welcomeBackgroundOffset || { x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
   const [startPosition, setStartPosition] = useState({ x: 0, y: 0 })
   const [imageOriginal, setImageOriginal] = useState(null)
   const [bannerOriginal, setBannerOriginal] = useState(null)
+  const [welcomeBackgroundOriginal, setWelcomeBackgroundOriginal] = useState(null)
   const [unsavedChanges, setUnsavedChanges] = useState(false)
   
   const logoInputRef = useRef(null)
   const bannerInputRef = useRef(null)
+  const welcomeBackgroundInputRef = useRef(null)
   const imageEditorRef = useRef(null)
   const bannerEditorRef = useRef(null)
+  const welcomeBackgroundEditorRef = useRef(null)
   const imageRef = useRef(null)
   const bannerRef = useRef(null)
+  const welcomeBackgroundRef = useRef(null)
   const colorPickerRefs = useRef({})
 
   // Authentication check
@@ -95,6 +111,11 @@ export default function Dashboard() {
     if (theme.banner) setBanner(theme.banner)
     if (theme.bannerZoom) setBannerZoom(theme.bannerZoom)
     if (theme.bannerOffset) setBannerPosition(theme.bannerOffset)
+    if (theme.welcomeBackground) setWelcomeBackground(theme.welcomeBackground)
+    if (theme.welcomeBackgroundZoom) setWelcomeBackgroundZoom(theme.welcomeBackgroundZoom)
+    if (theme.welcomeBackgroundOffset) setWelcomeBackgroundPosition(theme.welcomeBackgroundOffset)
+    if (theme.welcomeTitle) setWelcomeTitle(theme.welcomeTitle)
+    if (theme.welcomeSubtitle) setWelcomeSubtitle(theme.welcomeSubtitle)
   }, [theme])
   
   // Track unsaved changes
@@ -108,10 +129,15 @@ export default function Dashboard() {
       JSON.stringify(position) !== JSON.stringify(theme.logoOffset) ||
       banner !== theme.banner ||
       bannerZoom !== theme.bannerZoom ||
-      JSON.stringify(bannerPosition) !== JSON.stringify(theme.bannerOffset)
+      JSON.stringify(bannerPosition) !== JSON.stringify(theme.bannerOffset) ||
+      welcomeBackground !== theme.welcomeBackground ||
+      welcomeBackgroundZoom !== theme.welcomeBackgroundZoom ||
+      JSON.stringify(welcomeBackgroundPosition) !== JSON.stringify(theme.welcomeBackgroundOffset) ||
+      welcomeTitle !== theme.welcomeTitle ||
+      welcomeSubtitle !== theme.welcomeSubtitle
       
     setUnsavedChanges(themeChanged)
-  }, [colors, logo, logoShape, logoPosition, logoSize, zoom, position, banner, bannerZoom, bannerPosition, theme])
+  }, [colors, logo, logoShape, logoPosition, logoSize, zoom, position, banner, bannerZoom, bannerPosition, welcomeBackground, welcomeBackgroundZoom, welcomeBackgroundPosition, welcomeTitle, welcomeSubtitle, theme])
 
   // Handle window resize for sidebar
   useEffect(() => {
@@ -157,7 +183,12 @@ export default function Dashboard() {
       logoOffset: position,
       banner,
       bannerZoom,
-      bannerOffset: bannerPosition
+      bannerOffset: bannerPosition,
+      welcomeBackground,
+      welcomeBackgroundZoom: welcomeBackgroundZoom,
+      welcomeBackgroundOffset: welcomeBackgroundPosition,
+      welcomeTitle,
+      welcomeSubtitle
     }
     
     updateTheme(updatedTheme)
@@ -194,7 +225,12 @@ export default function Dashboard() {
       logoOffset: { x: 0, y: 0 },
       banner: null,
       bannerZoom: 1,
-      bannerOffset: { x: 0, y: 0 }
+      bannerOffset: { x: 0, y: 0 },
+      welcomeBackground: null,
+      welcomeBackgroundZoom: 1,
+      welcomeBackgroundOffset: { x: 0, y: 0 },
+      welcomeTitle: 'Welcome to Our Restaurant',
+      welcomeSubtitle: 'Scan the QR code to view our menu'
     }
     
     setColors(defaultTheme)
@@ -207,6 +243,11 @@ export default function Dashboard() {
     setBanner(null)
     setBannerZoom(1)
     setBannerPosition({ x: 0, y: 0 })
+    setWelcomeBackground(null)
+    setWelcomeBackgroundZoom(1)
+    setWelcomeBackgroundPosition({ x: 0, y: 0 })
+    setWelcomeTitle('Welcome to Our Restaurant')
+    setWelcomeSubtitle('Scan the QR code to view our menu')
     updateTheme(defaultTheme)
     showNotification('Theme reset to defaults')
   }
@@ -261,6 +302,31 @@ export default function Dashboard() {
     reader.readAsDataURL(file)
   }
 
+  // Handle welcome background upload
+  const handleWelcomeBackgroundUpload = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+  
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      showNotification('Please upload an image file', 'error')
+      return
+    }
+  
+    // Check file size (limit to 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      showNotification('Background image must be less than 2MB', 'error')
+      return
+    }
+  
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      setWelcomeBackgroundOriginal(event.target.result)
+      setIsEditingWelcomeBackground(true)
+    }
+    reader.readAsDataURL(file)
+  }
+
   // Remove logo
   const handleLogoRemove = () => {
     setLogo(null)
@@ -268,6 +334,7 @@ export default function Dashboard() {
     if (logoInputRef.current) {
       logoInputRef.current.value = ''
     }
+    showNotification('Logo removed successfully')
   }
 
   // Remove banner
@@ -277,6 +344,17 @@ export default function Dashboard() {
     if (bannerInputRef.current) {
       bannerInputRef.current.value = ''
     }
+    showNotification('Banner removed successfully')
+  }
+
+  // Remove welcome background
+  const handleWelcomeBackgroundRemove = () => {
+    setWelcomeBackground(null)
+    setWelcomeBackgroundOriginal(null)
+    if (welcomeBackgroundInputRef.current) {
+      welcomeBackgroundInputRef.current.value = ''
+    }
+    showNotification('Welcome background removed successfully')
   }
 
   // Handle mouse down for logo dragging
@@ -304,12 +382,6 @@ export default function Dashboard() {
     setPosition({ x: newX, y: newY })
   }
 
-  // Handle mouse up to stop dragging
-  const handleMouseUp = (e) => {
-    e.preventDefault()
-    setIsDragging(false)
-  }
-
   // Handle mouse down for banner dragging
   const handleBannerMouseDown = (e) => {
     e.preventDefault()
@@ -335,6 +407,37 @@ export default function Dashboard() {
     setBannerPosition({ x: newX, y: newY })
   }
 
+  // Handle mouse down for welcome background dragging
+  const handleWelcomeBackgroundMouseDown = (e) => {
+    e.preventDefault()
+    if (!welcomeBackgroundRef.current) return
+    
+    setIsDragging(true)
+    setStartPosition({
+      x: e.clientX - welcomeBackgroundPosition.x,
+      y: e.clientY - welcomeBackgroundPosition.y
+    })
+  }
+
+  // Handle mouse move for welcome background dragging
+  const handleWelcomeBackgroundMouseMove = (e) => {
+    e.preventDefault()
+    if (!isDragging || !welcomeBackgroundRef.current || !welcomeBackgroundEditorRef.current) return
+
+    // Calculate new position
+    const newX = e.clientX - startPosition.x
+    const newY = e.clientY - startPosition.y
+    
+    // Apply the new position
+    setWelcomeBackgroundPosition({ x: newX, y: newY })
+  }
+
+  // Handle mouse up to stop dragging
+  const handleMouseUp = (e) => {
+    e.preventDefault()
+    setIsDragging(false)
+  }
+
   // Handle zoom changes for logo
   const handleZoomChange = (e) => {
     setZoom(parseFloat(e.target.value))
@@ -343,6 +446,11 @@ export default function Dashboard() {
   // Handle zoom changes for banner
   const handleBannerZoomChange = (e) => {
     setBannerZoom(parseFloat(e.target.value))
+  }
+
+  // Handle zoom changes for welcome background
+  const handleWelcomeBackgroundZoomChange = (e) => {
+    setWelcomeBackgroundZoom(parseFloat(e.target.value))
   }
 
   // Zoom in button handler for logo
@@ -365,6 +473,16 @@ export default function Dashboard() {
     setBannerZoom(prev => Math.max(0.5, prev - 0.1))
   }
 
+  // Zoom in button handler for welcome background
+  const handleWelcomeBackgroundZoomIn = () => {
+    setWelcomeBackgroundZoom(prev => Math.min(3, prev + 0.1))
+  }
+
+  // Zoom out button handler for welcome background
+  const handleWelcomeBackgroundZoomOut = () => {
+    setWelcomeBackgroundZoom(prev => Math.max(0.5, prev - 0.1))
+  }
+
   // Save the edited logo
   const handleSaveLogoEdit = () => {
     if (!imageRef.current || !imageEditorRef.current || !imageOriginal) {
@@ -385,34 +503,55 @@ export default function Dashboard() {
     canvas.height = containerRect.height
     
     // Create a temporary image to draw on canvas
-    const img = new Image()
+    // Use window.Image to avoid conflict with the lucide-react Image component
+    const img = new window.Image()
     img.crossOrigin = "anonymous"
     img.src = imageOriginal
     
     img.onload = () => {
-      // Calculate center of the image
-      const imgCenterX = img.width / 2
-      const imgCenterY = img.height / 2
-      
-      // Calculate source coordinates (where to crop from the original image)
-      const sourceX = imgCenterX - (containerRect.width / 2 / zoom) + (position.x / zoom)
-      const sourceY = imgCenterY - (containerRect.height / 2 / zoom) + (position.y / zoom)
-      const sourceWidth = containerRect.width / zoom
-      const sourceHeight = containerRect.height / zoom
-      
-      // Draw the image with proper cropping
-      ctx.drawImage(
-        img,
-        sourceX, sourceY, sourceWidth, sourceHeight,
-        0, 0, canvas.width, canvas.height
-      )
-      
-      // Convert canvas to data URL and set as logo
       try {
+        // Calculate center of the image
+        const imgCenterX = img.width / 2
+        const imgCenterY = img.height / 2
+        
+        // Calculate source coordinates (where to crop from the original image)
+        const sourceX = imgCenterX - (containerRect.width / 2 / zoom) + (position.x / zoom)
+        const sourceY = imgCenterY - (containerRect.height / 2 / zoom) + (position.y / zoom)
+        const sourceWidth = containerRect.width / zoom
+        const sourceHeight = containerRect.height / zoom
+        
+        // Draw the image with proper cropping
+        ctx.drawImage(
+          img,
+          sourceX, sourceY, sourceWidth, sourceHeight,
+          0, 0, canvas.width, canvas.height
+        )
+        
+        // Convert canvas to data URL and set as logo
         const dataUrl = canvas.toDataURL('image/png')
+        
+        // Update local state
         setLogo(dataUrl)
+        
+        // Update global theme state immediately and persist to localStorage
+        const updatedTheme = {
+          ...theme,
+          logo: dataUrl,
+          logoShape,
+          logoPosition,
+          logoSize,
+          logoZoom: zoom,
+          logoOffset: position
+        }
+        
+        // Update the context
+        updateTheme(updatedTheme)
+        
+        // Also save to localStorage for persistence
+        localStorage.setItem('appTheme', JSON.stringify(updatedTheme))
+        
         setIsEditingLogo(false)
-        showNotification('Logo updated successfully')
+        showNotification('Logo updated and saved successfully')
       } catch (err) {
         console.error("Error creating logo:", err)
         showNotification('Error creating logo. Please try again with a different image.', 'error')
@@ -447,34 +586,52 @@ export default function Dashboard() {
     canvas.height = containerRect.height
     
     // Create a temporary image to draw on canvas
-    const img = new Image()
+    // Use window.Image to avoid conflict with the lucide-react Image component
+    const img = new window.Image()
     img.crossOrigin = "anonymous"
     img.src = bannerOriginal
     
     img.onload = () => {
-      // Calculate center of the image
-      const imgCenterX = img.width / 2
-      const imgCenterY = img.height / 2
-      
-      // Calculate source coordinates (where to crop from the original image)
-      const sourceX = imgCenterX - (containerRect.width / 2 / bannerZoom) + (bannerPosition.x / bannerZoom)
-      const sourceY = imgCenterY - (containerRect.height / 2 / bannerZoom) + (bannerPosition.y / bannerZoom)
-      const sourceWidth = containerRect.width / bannerZoom
-      const sourceHeight = containerRect.height / bannerZoom
-      
-      // Draw the image with proper cropping
-      ctx.drawImage(
-        img,
-        sourceX, sourceY, sourceWidth, sourceHeight,
-        0, 0, canvas.width, canvas.height
-      )
-      
-      // Convert canvas to data URL and set as banner
       try {
+        // Calculate center of the image
+        const imgCenterX = img.width / 2
+        const imgCenterY = img.height / 2
+        
+        // Calculate source coordinates (where to crop from the original image)
+        const sourceX = imgCenterX - (containerRect.width / 2 / bannerZoom) + (bannerPosition.x / bannerZoom)
+        const sourceY = imgCenterY - (containerRect.height / 2 / bannerZoom) + (bannerPosition.y / bannerZoom)
+        const sourceWidth = containerRect.width / bannerZoom
+        const sourceHeight = containerRect.height / bannerZoom
+        
+        // Draw the image with proper cropping
+        ctx.drawImage(
+          img,
+          sourceX, sourceY, sourceWidth, sourceHeight,
+          0, 0, canvas.width, canvas.height
+        )
+        
+        // Convert canvas to data URL and set as banner
         const dataUrl = canvas.toDataURL('image/png')
+        
+        // Update local state
         setBanner(dataUrl)
+        
+        // Update global theme state immediately and persist to localStorage
+        const updatedTheme = {
+          ...theme,
+          banner: dataUrl,
+          bannerZoom,
+          bannerOffset: bannerPosition
+        }
+        
+        // Update the context
+        updateTheme(updatedTheme)
+        
+        // Also save to localStorage for persistence
+        localStorage.setItem('appTheme', JSON.stringify(updatedTheme))
+        
         setIsEditingBanner(false)
-        showNotification('Banner updated successfully')
+        showNotification('Banner updated and saved successfully')
       } catch (err) {
         console.error("Error creating banner:", err)
         showNotification('Error creating banner. Please try again with a different image.', 'error')
@@ -486,6 +643,86 @@ export default function Dashboard() {
       console.error("Error loading image")
       showNotification('Error loading image. Please try again with a different image.', 'error')
       setIsEditingBanner(false)
+    }
+  }
+
+  // Save the edited welcome background
+  const handleSaveWelcomeBackgroundEdit = () => {
+    if (!welcomeBackgroundRef.current || !welcomeBackgroundEditorRef.current || !welcomeBackgroundOriginal) {
+      console.error("Missing required elements for welcome background editing")
+      setIsEditingWelcomeBackground(false)
+      return
+    }
+
+    // Create a canvas to render the cropped image
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    
+    // Get the container dimensions
+    const containerRect = welcomeBackgroundEditorRef.current.getBoundingClientRect()
+    
+    // Set canvas dimensions to match the cropping area
+    canvas.width = containerRect.width
+    canvas.height = containerRect.height
+    
+    // Create a temporary image to draw on canvas
+    // Use window.Image to avoid conflict with the lucide-react Image component
+    const img = new window.Image()
+    img.crossOrigin = "anonymous"
+    img.src = welcomeBackgroundOriginal
+    
+    img.onload = () => {
+      try {
+        // Calculate center of the image
+        const imgCenterX = img.width / 2
+        const imgCenterY = img.height / 2
+        
+        // Calculate source coordinates (where to crop from the original image)
+        const sourceX = imgCenterX - (containerRect.width / 2 / welcomeBackgroundZoom) + (welcomeBackgroundPosition.x / welcomeBackgroundZoom)
+        const sourceY = imgCenterY - (containerRect.height / 2 / welcomeBackgroundZoom) + (welcomeBackgroundPosition.y / welcomeBackgroundZoom)
+        const sourceWidth = containerRect.width / welcomeBackgroundZoom
+        const sourceHeight = containerRect.height / welcomeBackgroundZoom
+        
+        // Draw the image with proper cropping
+        ctx.drawImage(
+          img,
+          sourceX, sourceY, sourceWidth, sourceHeight,
+          0, 0, canvas.width, canvas.height
+        )
+        
+        // Convert canvas to data URL and set as welcome background
+        const dataUrl = canvas.toDataURL('image/png')
+        
+        // Update local state
+        setWelcomeBackground(dataUrl)
+        
+        // Update global theme state immediately and persist to localStorage
+        const updatedTheme = {
+          ...theme,
+          welcomeBackground: dataUrl,
+          welcomeBackgroundZoom,
+          welcomeBackgroundOffset: welcomeBackgroundPosition
+        }
+        
+        // Update the context
+        updateTheme(updatedTheme)
+        
+        // Also save to localStorage for persistence
+        localStorage.setItem('appTheme', JSON.stringify(updatedTheme))
+        
+        setIsEditingWelcomeBackground(false)
+        showNotification('Welcome background updated and saved successfully')
+      } catch (err) {
+        console.error("Error creating welcome background:", err)
+        showNotification('Error creating welcome background. Please try again with a different image.', 'error')
+        setIsEditingWelcomeBackground(false)
+      }
+    }
+    
+    img.onerror = () => {
+      console.error("Error loading image")
+      showNotification('Error loading image. Please try again with a different image.', 'error')
+      setIsEditingWelcomeBackground(false)
     }
   }
 
@@ -504,6 +741,15 @@ export default function Dashboard() {
     if (!banner) {
       // Clear the uploaded image if there was no banner before
       setBannerOriginal(null)
+    }
+  }
+
+  // Cancel welcome background editing
+  const handleCancelWelcomeBackgroundEdit = () => {
+    setIsEditingWelcomeBackground(false)
+    if (!welcomeBackground) {
+      // Clear the uploaded image if there was no welcome background before
+      setWelcomeBackgroundOriginal(null)
     }
   }
 
@@ -546,8 +792,123 @@ export default function Dashboard() {
       '#FFFBEB', // Light yellow
     ]
   }
+  
+  // Theme presets with complete color schemes
+  const themePresets = {
+    'pink': {
+      primary: '#DB2777',
+      secondary: '#F9FAFB',
+      text: '#1F2937',
+      background: '#FFFFFF',
+    },
+    'blue': {
+      primary: '#2563EB',
+      secondary: '#F0F9FF',
+      text: '#1F2937',
+      background: '#FFFFFF',
+    },
+    'green': {
+      primary: '#10B981',
+      secondary: '#F0FDF4',
+      text: '#1F2937',
+      background: '#FFFFFF',
+    },
+    'amber': {
+      primary: '#F59E0B',
+      secondary: '#FFFBEB',
+      text: '#1F2937',
+      background: '#FFFFFF',
+    },
+    'purple': {
+      primary: '#8B5CF6',
+      secondary: '#F5F3FF',
+      text: '#1F2937',
+      background: '#FFFFFF',
+    },
+    'red': {
+      primary: '#EF4444',
+      secondary: '#FEF2F2',
+      text: '#1F2937',
+      background: '#FFFFFF',
+    },
+    'slate': {
+      primary: '#1E293B',
+      secondary: '#F8FAFC',
+      text: '#334155',
+      background: '#FFFFFF',
+    },
+    'teal': {
+      primary: '#0D9488',
+      secondary: '#F0FDFA',
+      text: '#1F2937',
+      background: '#FFFFFF',
+    }
+  }
+  
+  // Apply a complete color theme
+  const applyThemePreset = (themeName) => {
+    const preset = themePresets[themeName];
+    if (preset) {
+      setColors({
+        ...colors,
+        ...preset
+      });
+    }
+  }
 
-  // Phone preview component
+  // Welcome Page Preview component
+  const WelcomePagePreview = ({ isMini = false }) => (
+    <div className={`relative ${isMini ? 'w-56 h-96' : 'w-72 h-[600px]'} border-8 border-gray-800 rounded-3xl overflow-hidden shadow-xl mx-auto transition-all duration-300`}>
+      {/* Notch */}
+      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-24 h-5 bg-gray-800 rounded-b-lg z-20"></div>
+      
+      {/* Welcome background */}
+      <div 
+        className="relative w-full h-full flex flex-col items-center justify-center p-6 text-center"
+        style={{ 
+          backgroundColor: welcomeBackground ? 'transparent' : colors.primary,
+          backgroundImage: welcomeBackground ? `url(${welcomeBackground})` : 'none',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      >
+        <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px]"></div>
+        
+        {/* Center Logo - Made Larger */}
+        <div className="flex flex-col items-center justify-center h-full z-10">
+          {logo && (
+            <div className="mb-6">
+              <div 
+                className={`
+                  ${logoShape === 'circle' ? 'rounded-full overflow-hidden' : ''}
+                  ${logoSize === 'small' ? 'h-24 w-24' : 
+                    logoSize === 'medium' ? 'h-32 w-32' : 
+                    'h-40 w-40'}
+                  bg-white/20 backdrop-blur-sm p-2 mx-auto
+                `}
+              >
+                <img 
+                  src={logo} 
+                  alt="Restaurant logo" 
+                  className={`
+                    ${logoShape === 'circle' ? 'h-full w-full object-cover' : 'h-full w-auto object-contain'}
+                  `}
+                />
+              </div>
+            </div>
+          )}
+          
+          {/* Welcome text */}
+          <div className="relative z-10">
+            <h1 className="text-xl font-bold text-white mb-2">{welcomeTitle}</h1>
+            <p className="text-sm text-white/90">{welcomeSubtitle}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Phone menu preview component
   const PhonePreview = ({ isMini = false }) => (
     <div className={`relative ${isMini ? 'w-56 h-96' : 'w-72 h-[600px]'} border-8 border-gray-800 rounded-3xl overflow-hidden shadow-xl mx-auto transition-all duration-300`}>
       {/* Notch */}
@@ -1015,6 +1376,153 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
+      {/* Welcome Background Editor Modal */}
+      <AnimatePresence>
+        {isEditingWelcomeBackground && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-75 z-50"
+              onClick={handleCancelWelcomeBackgroundEdit}
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-white rounded-xl max-w-lg w-full overflow-hidden shadow-xl">
+                <div className="p-4 border-b border-gray-100 flex justify-between items-center">
+                  <h3 className="text-lg font-medium">Customize Welcome Background</h3>
+                  <button 
+                    onClick={handleCancelWelcomeBackgroundEdit}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                
+                <div className="p-6">
+                  <div className="flex items-center justify-center mb-6">
+                    <div 
+                      ref={welcomeBackgroundEditorRef}
+                      className="relative w-full h-56 overflow-hidden rounded-lg border-2 border-gray-200 shadow-inner"
+                      onMouseDown={handleWelcomeBackgroundMouseDown}
+                      onMouseMove={handleWelcomeBackgroundMouseMove}
+                      onMouseUp={handleMouseUp}
+                      onMouseLeave={handleMouseUp}
+                      style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+                    >
+                      {welcomeBackgroundOriginal && (
+                        <img 
+                          ref={welcomeBackgroundRef}
+                          src={welcomeBackgroundOriginal} 
+                          alt="Welcome background preview" 
+                          className="absolute"
+                          style={{
+                            transform: `translate(-50%, -50%) translate(${welcomeBackgroundPosition.x}px, ${welcomeBackgroundPosition.y}px) scale(${welcomeBackgroundZoom})`,
+                            transformOrigin: 'center',
+                            left: '50%',
+                            top: '50%',
+                            width: 'auto',
+                            height: 'auto',
+                            maxWidth: 'none',
+                            maxHeight: 'none',
+                            cursor: isDragging ? 'grabbing' : 'grab',
+                            transition: isDragging ? 'none' : 'transform 0.1s ease-out'
+                          }}
+                          draggable="false"
+                          onDragStart={(e) => e.preventDefault()}
+                          onLoad={(e) => {
+                            // Automatically calculate better initial zoom when image loads
+                            if (welcomeBackgroundEditorRef.current) {
+                              const container = welcomeBackgroundEditorRef.current.getBoundingClientRect()
+                              const img = e.target
+                              const imgRatio = img.naturalWidth / img.naturalHeight
+                              const containerRatio = container.width / container.height
+                              
+                              // Calculate zoom to fit the entire image
+                              let newZoom
+                              if (imgRatio > containerRatio) {
+                                // Image is wider than container
+                                newZoom = container.height / img.naturalHeight * 0.8
+                              } else {
+                                // Image is taller than container
+                                newZoom = container.width / img.naturalWidth * 0.8
+                              }
+                              
+                              // Set the zoom (but don't zoom in beyond 1)
+                              setWelcomeBackgroundZoom(Math.min(1, newZoom))
+                            }
+                          }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-gray-600">Zoom</span>
+                      <div className="flex space-x-2">
+                        <button 
+                          onClick={handleWelcomeBackgroundZoomOut}
+                          className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                          disabled={welcomeBackgroundZoom <= 0.5}
+                        >
+                          <ZoomOut className="w-4 h-4 text-gray-700" />
+                        </button>
+                        <button 
+                          onClick={handleWelcomeBackgroundZoomIn}
+                          className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                          disabled={welcomeBackgroundZoom >= 3}
+                        >
+                          <ZoomIn className="w-4 h-4 text-gray-700" />
+                        </button>
+                      </div>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="0.5" 
+                      max="3" 
+                      step="0.01" 
+                      value={welcomeBackgroundZoom}
+                      onChange={handleWelcomeBackgroundZoomChange}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                  </div>
+                  
+                  <div className="mb-6">
+                    <p className="text-sm text-gray-500">
+                      <Info className="w-4 h-4 inline mr-1" />
+                      Drag to position. Use zoom to adjust size. This image will be used as the welcome page background.
+                    </p>
+                  </div>
+                  
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={handleCancelWelcomeBackgroundEdit}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveWelcomeBackgroundEdit}
+                      className="flex-1 px-4 py-2 text-white rounded-md transition-colors"
+                      style={{ backgroundColor: colors.primary }}
+                    >
+                      Save Background
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
         <div className="max-w-full px-4 sm:px-6 lg:px-8">
@@ -1035,7 +1543,7 @@ export default function Dashboard() {
                 >
                   <Coffee className="h-6 w-6" />
                 </div>
-                <h1 className="text-xl font-bold text-gray-900">QR Menu Dashboard</h1>
+                <h1 className="text-xl font-bold text-gray-900">Served Dashboard</h1>
               </div>
             </div>
 
@@ -1096,6 +1604,19 @@ export default function Dashboard() {
                       >
                         <Home className="w-5 h-5 mr-3" />
                         Dashboard
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        onClick={() => setActiveSection('welcome')}
+                        className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                          activeSection === 'welcome'
+                            ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-100'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <Layout className="w-5 h-5 mr-3" />
+                        Welcome Page
                       </button>
                     </li>
                     <li>
@@ -1218,12 +1739,26 @@ export default function Dashboard() {
               <div className="space-y-6">
                 <div className="bg-white rounded-xl shadow-sm overflow-hidden">
                   <div className="p-6 bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
-                    <h2 className="text-2xl font-bold mb-2">Welcome to Your QR Menu Dashboard</h2>
+                    <h2 className="text-2xl font-bold mb-2">Welcome to Served Dashboard</h2>
                     <p className="opacity-90">Customize your restaurant's digital menu experience from here.</p>
                   </div>
 
                   <div className="p-6">
                     <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="bg-gradient-to-br from-violet-50 to-indigo-100 rounded-xl p-5 border border-blue-200 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 bg-indigo-500 text-white">
+                          <Layout className="w-6 h-6" />
+                        </div>
+                        <h3 className="font-semibold text-lg text-gray-800 mb-2">Welcome Page</h3>
+                        <p className="text-gray-600 text-sm mb-4">Create a custom welcome page for your customers</p>
+                        <button
+                          onClick={() => setActiveSection('welcome')}
+                          className="text-indigo-600 text-sm font-medium hover:text-indigo-800 transition-colors flex items-center"
+                        >
+                          Edit welcome page <ChevronRight className="w-4 h-4 ml-1" />
+                        </button>
+                      </div>
+                      
                       <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl p-5 border border-blue-200 shadow-sm hover:shadow-md transition-shadow">
                         <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 bg-blue-500 text-white">
                           <Image className="w-6 h-6" />
@@ -1251,20 +1786,6 @@ export default function Dashboard() {
                           Manage colors <ChevronRight className="w-4 h-4 ml-1" />
                         </button>
                       </div>
-                      
-                      <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-xl p-5 border border-green-200 shadow-sm hover:shadow-md transition-shadow">
-                        <div className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 bg-green-500 text-white">
-                          <Eye className="w-6 h-6" />
-                        </div>
-                        <h3 className="font-semibold text-lg text-gray-800 mb-2">Preview</h3>
-                        <p className="text-gray-600 text-sm mb-4">See how your digital menu looks to customers</p>
-                        <button
-                          onClick={() => setActiveSection('preview')}
-                          className="text-green-600 text-sm font-medium hover:text-green-800 transition-colors flex items-center"
-                        >
-                          View preview <ChevronRight className="w-4 h-4 ml-1" />
-                        </button>
-                      </div>
                     </div>
                     
                     <div className="mt-10">
@@ -1282,11 +1803,14 @@ export default function Dashboard() {
                         </button>
                         
                         <button
-                          onClick={() => navigate('/menu')}
+                          onClick={() => {
+                            setActiveSection('welcome');
+                            setTimeout(() => welcomeBackgroundInputRef.current?.click(), 500);
+                          }}
                           className="flex items-center justify-center bg-white p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
                         >
-                          <Eye className="w-5 h-5 mr-2 text-gray-500" />
-                          <span className="text-gray-700">View Menu</span>
+                          <FileImage className="w-5 h-5 mr-2 text-gray-500" />
+                          <span className="text-gray-700">Upload Welcome Background</span>
                         </button>
                         
                         <button
@@ -1303,11 +1827,11 @@ export default function Dashboard() {
                         </button>
                         
                         <button
-                          onClick={handleReset}
+                          onClick={() => navigate('/menu/1')}
                           className="flex items-center justify-center bg-white p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
                         >
-                          <RefreshCw className="w-5 h-5 mr-2 text-gray-500" />
-                          <span className="text-gray-700">Reset Theme</span>
+                          <Eye className="w-5 h-5 mr-2 text-gray-500" />
+                          <span className="text-gray-700">View Menu</span>
                         </button>
                       </div>
                     </div>
@@ -1342,12 +1866,12 @@ export default function Dashboard() {
                           </div>
                           
                           <div className="flex-1 min-w-[200px]">
-                            <div className="text-sm text-gray-500 mb-1">Banner</div>
+                            <div className="text-sm text-gray-500 mb-1">Welcome Background</div>
                             <div className="flex items-center">
-                              {banner ? (
+                              {welcomeBackground ? (
                                 <>
                                   <div className="w-10 h-6 mr-2 border border-gray-200 rounded overflow-hidden bg-white">
-                                    <img src={banner} alt="Banner" className="w-full h-full object-cover" />
+                                    <img src={welcomeBackground} alt="Welcome background" className="w-full h-full object-cover" />
                                   </div>
                                   <span className="text-sm text-gray-700">Uploaded</span>
                                 </>
@@ -1371,6 +1895,151 @@ export default function Dashboard() {
                 </div>
               </div>
             )}
+
+            {/* Welcome Page Section */}
+            {activeSection === 'welcome' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2 space-y-6">
+                    {/* Welcome Background Upload Section */}
+                    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                      <div className="p-6 border-b border-gray-100">
+                        <h2 className="text-xl font-semibold text-gray-800">Welcome Page Background</h2>
+                        <p className="text-gray-500 text-sm mt-1">Upload and customize your welcome page background image</p>
+                      </div>
+
+                      <div className="p-6">
+                        <div className="space-y-6">
+                          <div className="space-y-4">
+                            {welcomeBackground ? (
+                              <div className="relative w-full max-w-md">
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-center">
+                                  <div 
+                                    className="w-full h-40 cursor-pointer overflow-hidden rounded-md"
+                                    onClick={() => {
+                                      // Edit existing welcome background
+                                      setWelcomeBackgroundOriginal(welcomeBackground)
+                                      setIsEditingWelcomeBackground(true)
+                                    }}
+                                  >
+                                    <img 
+                                      src={welcomeBackground} 
+                                      alt="Welcome background" 
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                  <button
+                                    onClick={handleWelcomeBackgroundRemove}
+                                    className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
+                                    aria-label="Remove welcome background"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </div>
+                                <div className="mt-2 text-xs text-blue-600">
+                                  Click on the image to edit
+                                </div>
+                              </div>
+                            ) : (
+                              <div 
+                                className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer h-40" 
+                                onClick={() => welcomeBackgroundInputRef.current.click()}
+                              >
+                                <div className="h-12 w-12 rounded-lg bg-blue-100 flex items-center justify-center mb-2">
+                                  <Image className="w-6 h-6 text-blue-500" />
+                                </div>
+                                <p className="text-sm text-gray-600 font-medium">Upload a welcome page background image</p>
+                                <p className="text-xs text-gray-500 mt-1">Will be displayed behind welcome text and QR code</p>
+                              </div>
+                            )}
+                            <input 
+                              type="file" 
+                              ref={welcomeBackgroundInputRef}
+                              onChange={handleWelcomeBackgroundUpload} 
+                              accept="image/*" 
+                              className="hidden" 
+                            />
+                            <button
+                              onClick={() => welcomeBackgroundInputRef.current.click()}
+                              className="inline-flex items-center px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-md bg-white hover:bg-gray-50 transition-colors"
+                            >
+                              {welcomeBackground ? 'Change Background' : 'Upload Background'}
+                            </button>
+                          </div>
+
+                          <p className="text-sm text-gray-500">
+                            <Info className="w-4 h-4 inline mr-1" />
+                            The welcome page is shown before customers enter the menu. It's the perfect place for branding and instructions.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Welcome Text Section */}
+                    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                      <div className="p-6 border-b border-gray-100">
+                        <h2 className="text-xl font-semibold text-gray-800">Welcome Text</h2>
+                        <p className="text-gray-500 text-sm mt-1">Customize the welcome page text</p>
+                      </div>
+
+                      <div className="p-6">
+                        <div className="space-y-6">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Welcome Title
+                              <span className="ml-2 text-xs text-gray-500">(Max 40 characters)</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={welcomeTitle}
+                              onChange={(e) => setWelcomeTitle(e.target.value.slice(0, 40))}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="Welcome to Our Restaurant"
+                              maxLength={40}
+                            />
+                            <div className="mt-1 text-xs text-gray-500 flex justify-between">
+                              <span>Main heading on the welcome page</span>
+                              <span>{welcomeTitle.length}/40</span>
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Welcome Subtitle
+                              <span className="ml-2 text-xs text-gray-500">(Max 80 characters)</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={welcomeSubtitle}
+                              onChange={(e) => setWelcomeSubtitle(e.target.value.slice(0, 80))}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="Scan the QR code to view our menu"
+                              maxLength={80}
+                            />
+                            <div className="mt-1 text-xs text-gray-500 flex justify-between">
+                              <span>Secondary text below the main heading</span>
+                              <span>{welcomeSubtitle.length}/80</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Welcome Page Preview */}
+                  <div className="flex justify-center">
+                    <div className="bg-white rounded-xl shadow-sm overflow-hidden p-6 border border-gray-200">
+                      <h3 className="text-lg font-medium text-center mb-6">Welcome Page Preview</h3>
+                      <WelcomePagePreview />
+                      <p className="text-sm text-center text-gray-500 mt-4">
+                        <Info className="w-4 h-4 inline mr-1" />
+                        This is how customers will see your welcome page
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             
             {/* Branding & Logo Section */}
             {activeSection === 'branding' && (
@@ -1383,19 +2052,16 @@ export default function Dashboard() {
                         <h2 className="text-xl font-semibold text-gray-800">Logo</h2>
                         <p className="text-gray-500 text-sm mt-1">Upload and customize your restaurant's logo</p>
                       </div>
-
                       <div className="p-6">
                         <div className="space-y-6">
                           <div className="space-y-4">
                             {logo ? (
-                              <div className="relative w-full max-w-xs">
-                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 flex items-center justify-center">
+                              <div className="relative w-full max-w-md">
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-center">
                                   <div 
                                     className={`
-                                      flex items-center justify-center cursor-pointer
-                                      ${logoShape === 'circle' 
-                                        ? 'rounded-full aspect-square w-24 h-24 overflow-hidden' 
-                                        : 'rounded-md'}
+                                      ${logoShape === 'circle' ? 'rounded-full overflow-hidden' : ''}
+                                      h-32 w-32 cursor-pointer
                                     `}
                                     onClick={() => {
                                       // Edit existing logo
@@ -1405,11 +2071,9 @@ export default function Dashboard() {
                                   >
                                     <img 
                                       src={logo} 
-                                      alt="Restaurant logo" 
+                                      alt="Logo" 
                                       className={`
-                                        ${logoShape === 'circle' 
-                                          ? 'h-full w-full object-cover' 
-                                          : 'max-h-24 max-w-full object-contain'}
+                                        ${logoShape === 'circle' ? 'h-full w-full object-cover' : 'h-full w-full object-contain'}
                                       `}
                                     />
                                   </div>
@@ -1422,19 +2086,19 @@ export default function Dashboard() {
                                   </button>
                                 </div>
                                 <div className="mt-2 text-xs text-blue-600">
-                                  Click on the logo to edit
+                                  Click on the image to edit
                                 </div>
                               </div>
                             ) : (
                               <div 
-                                className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer" 
+                                className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer h-40" 
                                 onClick={() => logoInputRef.current.click()}
                               >
-                                <div className="w-14 h-14 mb-3 rounded-full bg-blue-100 flex items-center justify-center">
-                                  <Upload className="w-6 h-6 text-blue-500" />
+                                <div className="h-12 w-12 rounded-lg bg-blue-100 flex items-center justify-center mb-2">
+                                  <Image className="w-6 h-6 text-blue-500" />
                                 </div>
-                                <p className="text-sm text-gray-600 font-medium">Upload a logo for your restaurant</p>
-                                <p className="text-xs text-gray-500 mt-1">PNG, JPG, SVG up to 2MB</p>
+                                <p className="text-sm text-gray-600 font-medium">Upload your restaurant logo</p>
+                                <p className="text-xs text-gray-500 mt-1">Will be shown on menu pages and welcome screen</p>
                               </div>
                             )}
                             <input 
@@ -1452,119 +2116,104 @@ export default function Dashboard() {
                             </button>
                           </div>
 
-                          {/* Logo Shape Option */}
-                          {logo && (
-                            <div className="mt-8">
-                              <label className="block text-sm font-medium text-gray-700 mb-3">
-                                Logo Shape
-                              </label>
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">Logo Shape</label>
                               <div className="flex space-x-2">
                                 <button
                                   onClick={() => setLogoShape('circle')}
-                                  className={`
-                                    flex items-center px-3 py-2 rounded-md text-sm
-                                    ${logoShape === 'circle' 
+                                  className={`flex items-center px-3 py-2 rounded-md text-sm ${
+                                    logoShape === 'circle' 
                                       ? 'bg-blue-50 text-blue-700 border border-blue-200 font-medium'
-                                      : 'bg-white border border-gray-300 text-gray-700'}
-                                  `}
+                                      : 'bg-white border border-gray-300 text-gray-700'
+                                  }`}
                                 >
                                   <Circle className="w-4 h-4 mr-1" />
                                   Circle
                                 </button>
                                 <button
                                   onClick={() => setLogoShape('square')}
-                                  className={`
-                                    flex items-center px-3 py-2 rounded-md text-sm
-                                    ${logoShape === 'square' 
+                                  className={`flex items-center px-3 py-2 rounded-md text-sm ${
+                                    logoShape === 'square' 
                                       ? 'bg-blue-50 text-blue-700 border border-blue-200 font-medium'
-                                      : 'bg-white border border-gray-300 text-gray-700'}
-                                  `}
+                                      : 'bg-white border border-gray-300 text-gray-700'
+                                  }`}
                                 >
                                   <Square className="w-4 h-4 mr-1" />
                                   Original
                                 </button>
                               </div>
                             </div>
-                          )}
-
-                          {/* Logo Position */}
-                          {logo && (
-                            <div className="mt-6">
-                              <label className="block text-sm font-medium text-gray-700 mb-3">
-                                Logo Position on Menu
-                              </label>
-                              <div className="flex space-x-3">
+                            
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">Logo Position</label>
+                              <div className="flex space-x-2">
                                 <button
                                   onClick={() => setLogoPosition('left')}
-                                  className={`
-                                    flex items-center px-3 py-2 rounded-md text-sm
-                                    ${logoPosition === 'left' 
+                                  className={`flex items-center px-3 py-2 rounded-md text-sm ${
+                                    logoPosition === 'left' 
                                       ? 'bg-blue-50 text-blue-700 border border-blue-200 font-medium'
-                                      : 'bg-white border border-gray-300 text-gray-700'}
-                                  `}
+                                      : 'bg-white border border-gray-300 text-gray-700'
+                                  }`}
                                 >
                                   <AlignLeft className="w-4 h-4 mr-1" />
                                   Left
                                 </button>
                                 <button
                                   onClick={() => setLogoPosition('center')}
-                                  className={`
-                                    flex items-center px-3 py-2 rounded-md text-sm
-                                    ${logoPosition === 'center' 
+                                  className={`flex items-center px-3 py-2 rounded-md text-sm ${
+                                    logoPosition === 'center' 
                                       ? 'bg-blue-50 text-blue-700 border border-blue-200 font-medium'
-                                      : 'bg-white border border-gray-300 text-gray-700'}
-                                  `}
+                                      : 'bg-white border border-gray-300 text-gray-700'
+                                  }`}
                                 >
                                   <AlignCenter className="w-4 h-4 mr-1" />
                                   Center
                                 </button>
                               </div>
                             </div>
-                          )}
-
-                          {/* Logo Size */}
-                          {logo && (
-                            <div className="mt-6">
-                              <label className="block text-sm font-medium text-gray-700 mb-3">
-                                Logo Size
-                              </label>
-                              <div className="flex space-x-3">
+                            
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">Logo Size</label>
+                              <div className="flex space-x-2">
                                 <button
                                   onClick={() => setLogoSize('small')}
-                                  className={`
-                                    px-4 py-2 rounded-md text-sm
-                                    ${logoSize === 'small' 
+                                  className={`px-3 py-2 rounded-md text-sm ${
+                                    logoSize === 'small' 
                                       ? 'bg-blue-50 text-blue-700 border border-blue-200 font-medium'
-                                      : 'bg-white border border-gray-300 text-gray-700'}
-                                  `}
+                                      : 'bg-white border border-gray-300 text-gray-700'
+                                  }`}
                                 >
                                   Small
                                 </button>
                                 <button
                                   onClick={() => setLogoSize('medium')}
-                                  className={`
-                                    px-4 py-2 rounded-md text-sm
-                                    ${logoSize === 'medium' 
+                                  className={`px-3 py-2 rounded-md text-sm ${
+                                    logoSize === 'medium' 
                                       ? 'bg-blue-50 text-blue-700 border border-blue-200 font-medium'
-                                      : 'bg-white border border-gray-300 text-gray-700'}
-                                  `}
+                                      : 'bg-white border border-gray-300 text-gray-700'
+                                  }`}
                                 >
                                   Medium
                                 </button>
                                 <button
                                   onClick={() => setLogoSize('large')}
-                                  className={`
-                                    px-4 py-2 rounded-md text-sm
-                                    ${logoSize === 'large' 
+                                  className={`px-3 py-2 rounded-md text-sm ${
+                                    logoSize === 'large' 
                                       ? 'bg-blue-50 text-blue-700 border border-blue-200 font-medium'
-                                      : 'bg-white border border-gray-300 text-gray-700'}
-                                  `}
+                                      : 'bg-white border border-gray-300 text-gray-700'
+                                  }`}
                                 >
                                   Large
                                 </button>
                               </div>
                             </div>
-                          )}
+                          </div>
+                          
+                          <p className="text-sm text-gray-500">
+                            <Info className="w-4 h-4 inline mr-1" />
+                            Your logo will appear in the menu header and welcome page.
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -1572,10 +2221,9 @@ export default function Dashboard() {
                     {/* Banner Upload Section */}
                     <div className="bg-white rounded-xl shadow-sm overflow-hidden">
                       <div className="p-6 border-b border-gray-100">
-                        <h2 className="text-xl font-semibold text-gray-800">Header Banner</h2>
-                        <p className="text-gray-500 text-sm mt-1">Upload a banner image to replace the header background color</p>
+                        <h2 className="text-xl font-semibold text-gray-800">Banner</h2>
+                        <p className="text-gray-500 text-sm mt-1">Customize your menu header banner</p>
                       </div>
-
                       <div className="p-6">
                         <div className="space-y-6">
                           <div className="space-y-4">
@@ -1583,7 +2231,7 @@ export default function Dashboard() {
                               <div className="relative w-full max-w-md">
                                 <div className="bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-center">
                                   <div 
-                                    className="w-full h-32 cursor-pointer overflow-hidden rounded-md"
+                                    className="w-full h-28 cursor-pointer overflow-hidden rounded-md"
                                     onClick={() => {
                                       // Edit existing banner
                                       setBannerOriginal(banner)
@@ -1592,7 +2240,7 @@ export default function Dashboard() {
                                   >
                                     <img 
                                       src={banner} 
-                                      alt="Header banner" 
+                                      alt="Banner" 
                                       className="w-full h-full object-cover"
                                     />
                                   </div>
@@ -1605,19 +2253,19 @@ export default function Dashboard() {
                                   </button>
                                 </div>
                                 <div className="mt-2 text-xs text-blue-600">
-                                  Click on the banner to edit
+                                  Click on the image to edit
                                 </div>
                               </div>
                             ) : (
                               <div 
-                                className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer h-32" 
+                                className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer h-28" 
                                 onClick={() => bannerInputRef.current.click()}
                               >
                                 <div className="h-12 w-12 rounded-lg bg-blue-100 flex items-center justify-center mb-2">
-                                  <Image className="w-6 h-6 text-blue-500" />
+                                  <FileImage className="w-6 h-6 text-blue-500" />
                                 </div>
-                                <p className="text-sm text-gray-600 font-medium">Upload a header banner image</p>
-                                <p className="text-xs text-gray-500 mt-1">Will replace the header background color</p>
+                                <p className="text-sm text-gray-600 font-medium">Upload a banner image</p>
+                                <p className="text-xs text-gray-500 mt-1">Will be displayed at the top of menu pages</p>
                               </div>
                             )}
                             <input 
@@ -1634,430 +2282,480 @@ export default function Dashboard() {
                               {banner ? 'Change Banner' : 'Upload Banner'}
                             </button>
                           </div>
+                          
+                          <p className="text-sm text-gray-500">
+                            <Info className="w-4 h-4 inline mr-1" />
+                            The banner will be displayed at the top of each menu page. If no banner is uploaded, your primary color will be used instead.
+                          </p>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Phone Preview */}
-                  <div className="flex justify-center">
+                  {/* Logo and Banner Preview */}
+                  <div className="space-y-6">
                     <div className="bg-white rounded-xl shadow-sm overflow-hidden p-6 border border-gray-200">
-                      <h3 className="text-lg font-medium text-center mb-6">Real-time Preview</h3>
-                      <PhonePreview />
+                      <h3 className="text-lg font-medium text-center mb-6">Logo Preview</h3>
+                      <div className="flex flex-col items-center">
+                        {logo ? (
+                          <div 
+                            className={`
+                              ${logoShape === 'circle' ? 'rounded-full overflow-hidden' : ''}
+                              ${logoSize === 'small' ? 'h-16 w-16' : 
+                                logoSize === 'medium' ? 'h-24 w-24' : 
+                                'h-32 w-32'}
+                              bg-gray-100 p-1 flex items-center justify-center
+                            `}
+                          >
+                            <img 
+                              src={logo} 
+                              alt="Logo preview" 
+                              className={`
+                                ${logoShape === 'circle' ? 'h-full w-full object-cover' : 'h-full w-auto object-contain'}
+                              `}
+                            />
+                          </div>
+                        ) : (
+                          <div 
+                            className={`
+                              ${logoShape === 'circle' ? 'rounded-full' : 'rounded-lg'}
+                              ${logoSize === 'small' ? 'h-16 w-16' : 
+                                logoSize === 'medium' ? 'h-24 w-24' : 
+                                'h-32 w-32'}
+                              bg-gray-200 flex items-center justify-center
+                            `}
+                          >
+                            <Image className="w-8 h-8 text-gray-400" />
+                          </div>
+                        )}
+                        <p className="text-sm text-center text-gray-500 mt-4">
+                          {logo ? 'Your restaurant logo' : 'No logo uploaded yet'}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
+                      <div className="p-6 border-b border-gray-100">
+                        <h3 className="text-lg font-medium text-center">Menu Preview</h3>
+                      </div>
+                      <div className="p-4 flex justify-center">
+                        <PhonePreview isMini={true} />
+                      </div>
+                      <div className="p-4 text-center">
+                        <button
+                          onClick={() => setActiveSection('preview')}
+                          className="px-4 py-2 text-sm font-medium text-white rounded-md transition-colors flex items-center mx-auto"
+                          style={{ backgroundColor: colors.primary }}
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          Full Preview
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             )}
             
-            {/* Colors & Theme Section */}
+            {/* Colors Section */}
             {activeSection === 'colors' && (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2">
+                  <div className="lg:col-span-2 space-y-6">
+                    {/* Quick Color Themes */}
                     <div className="bg-white rounded-xl shadow-sm overflow-hidden">
                       <div className="p-6 border-b border-gray-100">
-                        <h2 className="text-xl font-semibold text-gray-800">Color Theme</h2>
-                        <p className="text-gray-500 text-sm mt-1">Customize your restaurant's color scheme</p>
+                        <h2 className="text-xl font-semibold text-gray-800">Quick Color Themes</h2>
+                        <p className="text-gray-500 text-sm mt-1">Choose a predefined color scheme</p>
                       </div>
-
                       <div className="p-6">
-                        <div className="grid gap-8 md:grid-cols-2">
-                          <div className="space-y-8">
-                            {/* Primary Color */}
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Primary Color
-                                <span className="ml-2 text-xs text-gray-500">(Used for buttons, highlighted elements)</span>
-                              </label>
-                              <div className="flex items-center space-x-3">
-                                <div
-                                  className="relative overflow-hidden rounded-md border border-gray-300 h-10 w-20 cursor-pointer shadow-inner"
-                                  onClick={() => colorPickerRefs.current.primary.click()}
-                                >
-                                  <div
-                                    className="h-full w-full"
-                                    style={{ backgroundColor: colors.primary }}
-                                  />
-                                  <input
-                                    ref={el => colorPickerRefs.current.primary = el}
-                                    type="color"
-                                    value={colors.primary}
-                                    onChange={(e) => handleColorChange('primary', e.target.value)}
-                                    className="absolute inset-0 opacity-0 cursor-pointer h-full w-full"
-                                  />
-                                </div>
-                                <input
-                                  type="text"
-                                  value={colors.primary}
-                                  onChange={(e) => handleColorChange('primary', e.target.value)}
-                                  className="border border-gray-300 rounded-md px-3 py-2 text-sm w-40 shadow-sm focus:ring-2 focus:ring-opacity-50 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
-                                  placeholder="#DB2777"
-                                />
-                              </div>
-                              
-                              {/* Color presets */}
-                              <div className="mt-3">
-                                <div className="flex flex-wrap gap-2 mt-2">
-                                  {colorPresets.primary.map((color) => (
-                                    <button
-                                      key={color}
-                                      onClick={() => handleColorChange('primary', color)}
-                                      className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow"
-                                      style={{ backgroundColor: color }}
-                                      aria-label={`Set primary color to ${color}`}
-                                    >
-                                      {colors.primary.toLowerCase() === color.toLowerCase() && (
-                                        <Check className="w-4 h-4 text-white" />
-                                      )}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <button 
+                            onClick={() => applyThemePreset('pink')}
+                            className="bg-white p-3 rounded-xl border-2 hover:shadow-md transition-shadow"
+                            style={{ borderColor: colors.primary === '#DB2777' ? '#DB2777' : 'transparent' }}
+                          >
+                            <div className="flex justify-between space-x-1 mb-2">
+                              <div className="w-6 h-6 rounded-full bg-[#DB2777]"></div>
+                              <div className="w-6 h-6 rounded-full bg-[#1F2937]"></div>
+                              <div className="w-6 h-6 rounded-full bg-white border border-gray-200"></div>
+                              <div className="w-6 h-6 rounded-full bg-[#F9FAFB] border border-gray-200"></div>
                             </div>
-                            
-                            {/* Text Color */}
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Text Color
-                                <span className="ml-2 text-xs text-gray-500">(Main text content)</span>
-                              </label>
-                              <div className="flex items-center space-x-3">
-                                <div
-                                  className="relative overflow-hidden rounded-md border border-gray-300 h-10 w-20 cursor-pointer shadow-inner"
-                                  onClick={() => colorPickerRefs.current.text.click()}
-                                >
-                                  <div
-                                    className="h-full w-full"
-                                    style={{ backgroundColor: colors.text }}
-                                  />
-                                  <input
-                                    ref={el => colorPickerRefs.current.text = el}
-                                    type="color"
-                                    value={colors.text}
-                                    onChange={(e) => handleColorChange('text', e.target.value)}
-                                    className="absolute inset-0 opacity-0 cursor-pointer h-full w-full"
-                                  />
-                                </div>
-                                <input
-                                  type="text"
-                                  value={colors.text}
-                                  onChange={(e) => handleColorChange('text', e.target.value)}
-                                  className="border border-gray-300 rounded-md px-3 py-2 text-sm w-40 shadow-sm focus:ring-2 focus:ring-opacity-50 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
-                                  placeholder="#1F2937"
-                                />
-                              </div>
-                              
-                              {/* Color presets */}
-                              <div className="mt-3">
-                                <div className="flex flex-wrap gap-2 mt-2">
-                                  {colorPresets.text.map((color) => (
-                                    <button
-                                      key={color}
-                                      onClick={() => handleColorChange('text', color)}
-                                      className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow"
-                                      style={{ backgroundColor: color }}
-                                      aria-label={`Set text color to ${color}`}
-                                    >
-                                      {colors.text.toLowerCase() === color.toLowerCase() && (
-                                        <Check className="w-4 h-4 text-white" />
-                                      )}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
+                            <p className="text-sm font-medium text-center">Pink (Default)</p>
+                          </button>
+                          
+                          <button 
+                            onClick={() => applyThemePreset('blue')}
+                            className="bg-white p-3 rounded-xl border-2 hover:shadow-md transition-shadow"
+                            style={{ borderColor: colors.primary === '#2563EB' ? '#2563EB' : 'transparent' }}
+                          >
+                            <div className="flex justify-between space-x-1 mb-2">
+                              <div className="w-6 h-6 rounded-full bg-[#2563EB]"></div>
+                              <div className="w-6 h-6 rounded-full bg-[#1F2937]"></div>
+                              <div className="w-6 h-6 rounded-full bg-white border border-gray-200"></div>
+                              <div className="w-6 h-6 rounded-full bg-[#F0F9FF] border border-gray-200"></div>
                             </div>
+                            <p className="text-sm font-medium text-center">Blue Sky</p>
+                          </button>
+                          
+                          <button 
+                            onClick={() => applyThemePreset('green')}
+                            className="bg-white p-3 rounded-xl border-2 hover:shadow-md transition-shadow"
+                            style={{ borderColor: colors.primary === '#10B981' ? '#10B981' : 'transparent' }}
+                          >
+                            <div className="flex justify-between space-x-1 mb-2">
+                              <div className="w-6 h-6 rounded-full bg-[#10B981]"></div>
+                              <div className="w-6 h-6 rounded-full bg-[#1F2937]"></div>
+                              <div className="w-6 h-6 rounded-full bg-white border border-gray-200"></div>
+                              <div className="w-6 h-6 rounded-full bg-[#F0FDF4] border border-gray-200"></div>
+                            </div>
+                            <p className="text-sm font-medium text-center">Fresh Green</p>
+                          </button>
+                          
+                          <button 
+                            onClick={() => applyThemePreset('amber')}
+                            className="bg-white p-3 rounded-xl border-2 hover:shadow-md transition-shadow"
+                            style={{ borderColor: colors.primary === '#F59E0B' ? '#F59E0B' : 'transparent' }}
+                          >
+                            <div className="flex justify-between space-x-1 mb-2">
+                              <div className="w-6 h-6 rounded-full bg-[#F59E0B]"></div>
+                              <div className="w-6 h-6 rounded-full bg-[#1F2937]"></div>
+                              <div className="w-6 h-6 rounded-full bg-white border border-gray-200"></div>
+                              <div className="w-6 h-6 rounded-full bg-[#FFFBEB] border border-gray-200"></div>
+                            </div>
+                            <p className="text-sm font-medium text-center">Warm Amber</p>
+                          </button>
+                          
+                          <button 
+                            onClick={() => applyThemePreset('purple')}
+                            className="bg-white p-3 rounded-xl border-2 hover:shadow-md transition-shadow"
+                            style={{ borderColor: colors.primary === '#8B5CF6' ? '#8B5CF6' : 'transparent' }}
+                          >
+                            <div className="flex justify-between space-x-1 mb-2">
+                              <div className="w-6 h-6 rounded-full bg-[#8B5CF6]"></div>
+                              <div className="w-6 h-6 rounded-full bg-[#1F2937]"></div>
+                              <div className="w-6 h-6 rounded-full bg-white border border-gray-200"></div>
+                              <div className="w-6 h-6 rounded-full bg-[#F5F3FF] border border-gray-200"></div>
+                            </div>
+                            <p className="text-sm font-medium text-center">Royal Purple</p>
+                          </button>
+                          
+                          <button 
+                            onClick={() => applyThemePreset('red')}
+                            className="bg-white p-3 rounded-xl border-2 hover:shadow-md transition-shadow"
+                            style={{ borderColor: colors.primary === '#EF4444' ? '#EF4444' : 'transparent' }}
+                          >
+                            <div className="flex justify-between space-x-1 mb-2">
+                              <div className="w-6 h-6 rounded-full bg-[#EF4444]"></div>
+                              <div className="w-6 h-6 rounded-full bg-[#1F2937]"></div>
+                              <div className="w-6 h-6 rounded-full bg-white border border-gray-200"></div>
+                              <div className="w-6 h-6 rounded-full bg-[#FEF2F2] border border-gray-200"></div>
+                            </div>
+                            <p className="text-sm font-medium text-center">Vibrant Red</p>
+                          </button>
+                          
+                          <button 
+                            onClick={() => applyThemePreset('slate')}
+                            className="bg-white p-3 rounded-xl border-2 hover:shadow-md transition-shadow"
+                            style={{ borderColor: colors.primary === '#1E293B' ? '#1E293B' : 'transparent' }}
+                          >
+                            <div className="flex justify-between space-x-1 mb-2">
+                              <div className="w-6 h-6 rounded-full bg-[#1E293B]"></div>
+                              <div className="w-6 h-6 rounded-full bg-[#334155]"></div>
+                              <div className="w-6 h-6 rounded-full bg-white border border-gray-200"></div>
+                              <div className="w-6 h-6 rounded-full bg-[#F8FAFC] border border-gray-200"></div>
+                            </div>
+                            <p className="text-sm font-medium text-center">Classic Slate</p>
+                          </button>
+                          
+                          <button 
+                            onClick={() => applyThemePreset('teal')}
+                            className="bg-white p-3 rounded-xl border-2 hover:shadow-md transition-shadow"
+                            style={{ borderColor: colors.primary === '#0D9488' ? '#0D9488' : 'transparent' }}
+                          >
+                            <div className="flex justify-between space-x-1 mb-2">
+                              <div className="w-6 h-6 rounded-full bg-[#0D9488]"></div>
+                              <div className="w-6 h-6 rounded-full bg-[#1F2937]"></div>
+                              <div className="w-6 h-6 rounded-full bg-white border border-gray-200"></div>
+                              <div className="w-6 h-6 rounded-full bg-[#F0FDFA] border border-gray-200"></div>
+                            </div>
+                            <p className="text-sm font-medium text-center">Teal Monochrome</p>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Color Selection */}
+                    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                      <div className="p-6 border-b border-gray-100">
+                        <h2 className="text-xl font-semibold text-gray-800">Theme Colors</h2>
+                        <p className="text-gray-500 text-sm mt-1">Customize your menu's color palette</p>
+                      </div>
+                      <div className="p-6">
+                        <div className="space-y-8">
+                          {/* Primary Color */}
+                          <div>
+                            <div className="flex items-center justify-between mb-4">
+                              <label className="block text-sm font-medium text-gray-700">Primary Color</label>
+                              <div 
+                                className="w-8 h-8 rounded-full border-2 border-white shadow"
+                                style={{ backgroundColor: colors.primary }}
+                              ></div>
+                            </div>
+                            <div className="flex flex-wrap gap-2 mb-4">
+                              {colorPresets.primary.map((color, index) => (
+                                <button
+                                  key={index}
+                                  className={`w-8 h-8 rounded-full border-2 ${colors.primary === color ? 'border-blue-500 ring-2 ring-blue-200' : 'border-white'}`}
+                                  style={{ backgroundColor: color }}
+                                  onClick={() => handleColorChange('primary', color)}
+                                  aria-label={`Select color ${color}`}
+                                ></button>
+                              ))}
+                            </div>
+                            <div className="flex items-center">
+                              <span className="text-sm text-gray-600 mr-2">Custom:</span>
+                              <input
+                                type="color"
+                                value={colors.primary}
+                                onChange={(e) => handleColorChange('primary', e.target.value)}
+                                className="h-8 w-16 rounded cursor-pointer"
+                              />
+                              <input
+                                type="text"
+                                value={colors.primary}
+                                onChange={(e) => handleColorChange('primary', e.target.value)}
+                                className="ml-2 w-24 px-2 py-1 text-sm border border-gray-300 rounded"
+                              />
+                            </div>
+                            <p className="mt-2 text-xs text-gray-500">
+                              Used for buttons, accents, and highlights throughout the menu.
+                            </p>
                           </div>
                           
-                          <div className="space-y-8">
-                            {/* Background Color */}
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Background Color
-                                <span className="ml-2 text-xs text-gray-500">(Page background)</span>
-                              </label>
-                              <div className="flex items-center space-x-3">
-                                <div
-                                  className="relative overflow-hidden rounded-md border border-gray-300 h-10 w-20 cursor-pointer shadow-inner"
-                                  onClick={() => colorPickerRefs.current.background.click()}
-                                >
-                                  <div
-                                    className="h-full w-full"
-                                    style={{ backgroundColor: colors.background }}
-                                  />
-                                  <input
-                                    ref={el => colorPickerRefs.current.background = el}
-                                    type="color"
-                                    value={colors.background}
-                                    onChange={(e) => handleColorChange('background', e.target.value)}
-                                    className="absolute inset-0 opacity-0 cursor-pointer h-full w-full"
-                                  />
-                                </div>
-                                <input
-                                  type="text"
-                                  value={colors.background}
-                                  onChange={(e) => handleColorChange('background', e.target.value)}
-                                  className="border border-gray-300 rounded-md px-3 py-2 text-sm w-40 shadow-sm focus:ring-2 focus:ring-opacity-50 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
-                                  placeholder="#FFFFFF"
-                                />
-                              </div>
-                              
-                              {/* Color presets */}
-                              <div className="mt-3">
-                                <div className="flex flex-wrap gap-2 mt-2">
-                                  {colorPresets.background.map((color) => (
-                                    <button
-                                      key={color}
-                                      onClick={() => handleColorChange('background', color)}
-                                      className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow"
-                                      style={{ backgroundColor: color }}
-                                      aria-label={`Set background color to ${color}`}
-                                    >
-                                      {colors.background.toLowerCase() === color.toLowerCase() && (
-                                        <Check className="w-4 h-4 text-gray-700" />
-                                      )}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
+                          {/* Text Color */}
+                          <div>
+                            <div className="flex items-center justify-between mb-4">
+                              <label className="block text-sm font-medium text-gray-700">Text Color</label>
+                              <div 
+                                className="w-8 h-8 rounded-full border-2 border-white shadow"
+                                style={{ backgroundColor: colors.text }}
+                              ></div>
                             </div>
-                            
-                            {/* Secondary Color */}
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Secondary Background
-                                <span className="ml-2 text-xs text-gray-500">(Card backgrounds, secondary elements)</span>
-                              </label>
-                              <div className="flex items-center space-x-3">
-                                <div
-                                  className="relative overflow-hidden rounded-md border border-gray-300 h-10 w-20 cursor-pointer shadow-inner"
-                                  onClick={() => colorPickerRefs.current.secondary.click()}
-                                >
-                                  <div
-                                    className="h-full w-full"
-                                    style={{ backgroundColor: colors.secondary }}
-                                  />
-                                  <input
-                                    ref={el => colorPickerRefs.current.secondary = el}
-                                    type="color"
-                                    value={colors.secondary}
-                                    onChange={(e) => handleColorChange('secondary', e.target.value)}
-                                    className="absolute inset-0 opacity-0 cursor-pointer h-full w-full"
-                                  />
-                                </div>
-                                <input
-                                  type="text"
-                                  value={colors.secondary}
-                                  onChange={(e) => handleColorChange('secondary', e.target.value)}
-                                  className="border border-gray-300 rounded-md px-3 py-2 text-sm w-40 shadow-sm focus:ring-2 focus:ring-opacity-50 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
-                                  placeholder="#F9FAFB"
-                                />
-                              </div>
-                              
-                              {/* Color presets */}
-                              <div className="mt-3">
-                                <div className="flex flex-wrap gap-2 mt-2">
-                                  {colorPresets.secondary.map((color) => (
-                                    <button
-                                      key={color}
-                                      onClick={() => handleColorChange('secondary', color)}
-                                      className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow"
-                                      style={{ backgroundColor: color }}
-                                      aria-label={`Set secondary color to ${color}`}
-                                    >
-                                      {colors.secondary.toLowerCase() === color.toLowerCase() && (
-                                        <Check className="w-4 h-4 text-gray-700" />
-                                      )}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
+                            <div className="flex flex-wrap gap-2 mb-4">
+                              {colorPresets.text.map((color, index) => (
+                                <button
+                                  key={index}
+                                  className={`w-8 h-8 rounded-full border-2 ${colors.text === color ? 'border-blue-500 ring-2 ring-blue-200' : 'border-white'}`}
+                                  style={{ backgroundColor: color }}
+                                  onClick={() => handleColorChange('text', color)}
+                                  aria-label={`Select color ${color}`}
+                                ></button>
+                              ))}
                             </div>
+                            <div className="flex items-center">
+                              <span className="text-sm text-gray-600 mr-2">Custom:</span>
+                              <input
+                                type="color"
+                                value={colors.text}
+                                onChange={(e) => handleColorChange('text', e.target.value)}
+                                className="h-8 w-16 rounded cursor-pointer"
+                              />
+                              <input
+                                type="text"
+                                value={colors.text}
+                                onChange={(e) => handleColorChange('text', e.target.value)}
+                                className="ml-2 w-24 px-2 py-1 text-sm border border-gray-300 rounded"
+                              />
+                            </div>
+                            <p className="mt-2 text-xs text-gray-500">
+                              Used for main text content like item names and descriptions.
+                            </p>
                           </div>
-                        </div>
-                        
-                        {/* Color Presets */}
-                        <div className="mt-10">
-                          <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Color Themes</h3>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <button
-                              onClick={() => {
-                                setColors({
-                                  ...colors,
-                                  primary: '#DB2777',
-                                  text: '#1F2937',
-                                  background: '#FFFFFF',
-                                  secondary: '#F9FAFB'
-                                })
-                              }}
-                              className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left hover:shadow-md"
-                            >
-                              <div className="flex space-x-2 mb-2">
-                                <div className="w-6 h-6 rounded-full bg-pink-600"></div>
-                                <div className="w-6 h-6 rounded-full bg-gray-800"></div>
-                                <div className="w-6 h-6 rounded-full bg-white border border-gray-200"></div>
-                                <div className="w-6 h-6 rounded-full bg-gray-50 border border-gray-200"></div>
-                              </div>
-                              <div className="text-sm font-medium">Pink (Default)</div>
-                            </button>
-                            
-                            <button
-                              onClick={() => {
-                                setColors({
-                                  ...colors,
-                                  primary: '#2563EB',
-                                  text: '#1F2937',
-                                  background: '#FFFFFF',
-                                  secondary: '#F0F9FF'
-                                })
-                              }}
-                              className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left hover:shadow-md"
-                            >
-                              <div className="flex space-x-2 mb-2">
-                                <div className="w-6 h-6 rounded-full bg-blue-600"></div>
-                                <div className="w-6 h-6 rounded-full bg-gray-800"></div>
-                                <div className="w-6 h-6 rounded-full bg-white border border-gray-200"></div>
-                                <div className="w-6 h-6 rounded-full bg-blue-50 border border-gray-200"></div>
-                              </div>
-                              <div className="text-sm font-medium">Blue Sky</div>
-                            </button>
-                            
-                            <button
-                              onClick={() => {
-                                setColors({
-                                  ...colors,
-                                  primary: '#10B981',
-                                  text: '#1F2937',
-                                  background: '#FFFFFF',
-                                  secondary: '#ECFDF5'
-                                })
-                              }}
-                              className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left hover:shadow-md"
-                            >
-                              <div className="flex space-x-2 mb-2">
-                                <div className="w-6 h-6 rounded-full bg-emerald-500"></div>
-                                <div className="w-6 h-6 rounded-full bg-gray-800"></div>
-                                <div className="w-6 h-6 rounded-full bg-white border border-gray-200"></div>
-                                <div className="w-6 h-6 rounded-full bg-emerald-50 border border-gray-200"></div>
-                              </div>
-                              <div className="text-sm font-medium">Fresh Green</div>
-                            </button>
-                            
-                            <button
-                              onClick={() => {
-                                setColors({
-                                  ...colors,
-                                  primary: '#F59E0B',
-                                  text: '#1F2937',
-                                  background: '#FFFBEB',
-                                  secondary: '#FEF3C7'
-                                })
-                              }}
-                              className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left hover:shadow-md"
-                            >
-                              <div className="flex space-x-2 mb-2">
-                                <div className="w-6 h-6 rounded-full bg-amber-500"></div>
-                                <div className="w-6 h-6 rounded-full bg-gray-800"></div>
-                                <div className="w-6 h-6 rounded-full bg-amber-50 border border-gray-200"></div>
-                                <div className="w-6 h-6 rounded-full bg-amber-100 border border-gray-200"></div>
-                              </div>
-                              <div className="text-sm font-medium">Warm Amber</div>
-                            </button>
-                            
-                            <button
-                              onClick={() => {
-                                setColors({
-                                  ...colors,
-                                  primary: '#7C3AED',
-                                  text: '#1F2937',
-                                  background: '#FFFFFF',
-                                  secondary: '#F5F3FF'
-                                })
-                              }}
-                              className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left hover:shadow-md"
-                            >
-                              <div className="flex space-x-2 mb-2">
-                                <div className="w-6 h-6 rounded-full bg-violet-600"></div>
-                                <div className="w-6 h-6 rounded-full bg-gray-800"></div>
-                                <div className="w-6 h-6 rounded-full bg-white border border-gray-200"></div>
-                                <div className="w-6 h-6 rounded-full bg-violet-50 border border-gray-200"></div>
-                              </div>
-                              <div className="text-sm font-medium">Royal Purple</div>
-                            </button>
-                            
-                            <button
-                              onClick={() => {
-                                setColors({
-                                  ...colors,
-                                  primary: '#EF4444',
-                                  text: '#1F2937',
-                                  background: '#FFFFFF',
-                                  secondary: '#FEF2F2'
-                                })
-                              }}
-                              className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left hover:shadow-md"
-                            >
-                              <div className="flex space-x-2 mb-2">
-                                <div className="w-6 h-6 rounded-full bg-red-500"></div>
-                                <div className="w-6 h-6 rounded-full bg-gray-800"></div>
-                                <div className="w-6 h-6 rounded-full bg-white border border-gray-200"></div>
-                                <div className="w-6 h-6 rounded-full bg-red-50 border border-gray-200"></div>
-                              </div>
-                              <div className="text-sm font-medium">Vibrant Red</div>
-                            </button>
-                            
-                            <button
-                              onClick={() => {
-                                setColors({
-                                  ...colors,
-                                  primary: '#1E293B',
-                                  text: '#1E293B',
-                                  background: '#FFFFFF',
-                                  secondary: '#F8FAFC'
-                                })
-                              }}
-                              className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left hover:shadow-md"
-                            >
-                              <div className="flex space-x-2 mb-2">
-                                <div className="w-6 h-6 rounded-full bg-slate-800"></div>
-                                <div className="w-6 h-6 rounded-full bg-slate-800"></div>
-                                <div className="w-6 h-6 rounded-full bg-white border border-gray-200"></div>
-                                <div className="w-6 h-6 rounded-full bg-slate-50 border border-gray-200"></div>
-                              </div>
-                              <div className="text-sm font-medium">Classic Slate</div>
-                            </button>
-                            
-                            <button
-                              onClick={() => {
-                                setColors({
-                                  ...colors,
-                                  primary: '#0F766E',
-                                  text: '#0F766E',
-                                  background: '#F0FDFA',
-                                  secondary: '#CCFBF1'
-                                })
-                              }}
-                              className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left hover:shadow-md"
-                            >
-                              <div className="flex space-x-2 mb-2">
-                                <div className="w-6 h-6 rounded-full bg-teal-700"></div>
-                                <div className="w-6 h-6 rounded-full bg-teal-700"></div>
-                                <div className="w-6 h-6 rounded-full bg-teal-50 border border-gray-200"></div>
-                                <div className="w-6 h-6 rounded-full bg-teal-100 border border-gray-200"></div>
-                              </div>
-                              <div className="text-sm font-medium">Teal Monochrome</div>
-                            </button>
+                          
+                          {/* Background Color */}
+                          <div>
+                            <div className="flex items-center justify-between mb-4">
+                              <label className="block text-sm font-medium text-gray-700">Background Color</label>
+                              <div 
+                                className="w-8 h-8 rounded-full border-2 border-white shadow"
+                                style={{ backgroundColor: colors.background }}
+                              ></div>
                             </div>
+                            <div className="flex flex-wrap gap-2 mb-4">
+                              {colorPresets.background.map((color, index) => (
+                                <button
+                                  key={index}
+                                  className={`w-8 h-8 rounded-full border-2 ${colors.background === color ? 'border-blue-500 ring-2 ring-blue-200' : 'border-white'}`}
+                                  style={{ backgroundColor: color }}
+                                  onClick={() => handleColorChange('background', color)}
+                                  aria-label={`Select color ${color}`}
+                                ></button>
+                              ))}
+                            </div>
+                            <div className="flex items-center">
+                              <span className="text-sm text-gray-600 mr-2">Custom:</span>
+                              <input
+                                type="color"
+                                value={colors.background}
+                                onChange={(e) => handleColorChange('background', e.target.value)}
+                                className="h-8 w-16 rounded cursor-pointer"
+                              />
+                              <input
+                                type="text"
+                                value={colors.background}
+                                onChange={(e) => handleColorChange('background', e.target.value)}
+                                className="ml-2 w-24 px-2 py-1 text-sm border border-gray-300 rounded"
+                              />
+                            </div>
+                            <p className="mt-2 text-xs text-gray-500">
+                              Main background color for the menu UI.
+                            </p>
+                          </div>
+                          
+                          {/* Secondary Color */}
+                          <div>
+                            <div className="flex items-center justify-between mb-4">
+                              <label className="block text-sm font-medium text-gray-700">Secondary Color</label>
+                              <div 
+                                className="w-8 h-8 rounded-full border-2 border-white shadow"
+                                style={{ backgroundColor: colors.secondary }}
+                              ></div>
+                            </div>
+                            <div className="flex flex-wrap gap-2 mb-4">
+                              {colorPresets.secondary.map((color, index) => (
+                                <button
+                                  key={index}
+                                  className={`w-8 h-8 rounded-full border-2 ${colors.secondary === color ? 'border-blue-500 ring-2 ring-blue-200' : 'border-white'}`}
+                                  style={{ backgroundColor: color }}
+                                  onClick={() => handleColorChange('secondary', color)}
+                                  aria-label={`Select color ${color}`}
+                                ></button>
+                              ))}
+                            </div>
+                            <div className="flex items-center">
+                              <span className="text-sm text-gray-600 mr-2">Custom:</span>
+                              <input
+                                type="color"
+                                value={colors.secondary}
+                                onChange={(e) => handleColorChange('secondary', e.target.value)}
+                                className="h-8 w-16 rounded cursor-pointer"
+                              />
+                              <input
+                                type="text"
+                                value={colors.secondary}
+                                onChange={(e) => handleColorChange('secondary', e.target.value)}
+                                className="ml-2 w-24 px-2 py-1 text-sm border border-gray-300 rounded"
+                              />
+                            </div>
+                            <p className="mt-2 text-xs text-gray-500">
+                              Used for supporting UI elements and backgrounds.
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-
-                  {/* Phone Preview */}
-                  <div className="flex justify-center">
+                  
+                  {/* Color Theme Preview */}
+                  <div className="space-y-6">
                     <div className="bg-white rounded-xl shadow-sm overflow-hidden p-6 border border-gray-200">
-                      <h3 className="text-lg font-medium text-center mb-6">Real-time Preview</h3>
-                      <PhonePreview />
+                      <h3 className="text-lg font-medium text-center mb-6">Theme Preview</h3>
+                      <div 
+                        className="rounded-lg overflow-hidden shadow-sm border border-gray-200"
+                        style={{ backgroundColor: colors.background }}
+                      >
+                        {/* Header */}
+                        <div 
+                          className="p-4"
+                          style={{ backgroundColor: colors.primary }}
+                        >
+                          <h4 className="text-white font-medium text-center">Restaurant Name</h4>
+                        </div>
+                        
+                        {/* Content */}
+                        <div className="p-4 space-y-4">
+                          <div className="p-3 rounded-lg" style={{ backgroundColor: colors.secondary }}>
+                            <div className="flex justify-between items-center">
+                              <h5 className="font-medium" style={{ color: colors.text }}>Menu Item</h5>
+                              <span className="font-bold" style={{ color: colors.primary }}>$12.99</span>
+                            </div>
+                            <p className="text-sm text-gray-600 mt-1">Description of this delicious menu item</p>
+                            <div className="flex justify-end mt-2">
+                              <button 
+                                className="px-3 py-1 rounded-full text-white text-xs"
+                                style={{ backgroundColor: colors.primary }}
+                              >
+                                Add to Order
+                              </button>
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <h5 
+                              className="text-sm font-medium mb-2"
+                              style={{ color: colors.text }}
+                            >
+                              Category
+                            </h5>
+                            <div className="flex space-x-2">
+                              <div 
+                                className="h-12 w-12 rounded-lg flex items-center justify-center"
+                                style={{ backgroundColor: colors.primary }}
+                              >
+                                <Coffee className="text-white w-5 h-5" />
+                              </div>
+                              <div 
+                                className="h-12 w-12 rounded-lg flex items-center justify-center bg-gray-100"
+                              >
+                                <Coffee style={{ color: colors.text }} className="w-5 h-5" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-6">
+                        <PhonePreview isMini={true} />
+                      </div>
+                      
+                      <div className="mt-4 flex justify-center">
+                        <button
+                          onClick={() => setActiveSection('preview')}
+                          className="px-4 py-2 text-sm font-medium text-white rounded-md transition-colors inline-flex items-center"
+                          style={{ backgroundColor: colors.primary }}
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          Full Preview
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white rounded-xl shadow-sm overflow-hidden p-6 border border-gray-200">
+                      <h3 className="text-lg font-medium text-center mb-4">Quick Actions</h3>
+                      <div className="space-y-3">
+                        <button
+                          onClick={handleSave}
+                          className={`w-full flex items-center justify-center p-3 rounded-md ${
+                            unsavedChanges
+                              ? 'text-white font-medium'
+                              : 'bg-gray-100 text-gray-400'
+                          }`}
+                          style={{ backgroundColor: unsavedChanges ? colors.primary : '' }}
+                          disabled={!unsavedChanges}
+                        >
+                          <Save className="w-4 h-4 mr-2" />
+                          Save Changes
+                        </button>
+                        
+                        <button
+                          onClick={handleReset}
+                          className="w-full flex items-center justify-center p-3 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                        >
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Reset to Default
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2107,24 +2805,36 @@ export default function Dashboard() {
                       </div>
                     </div>
                     
-                    {/* Mobile Preview */}
+                    {/* Mobile Preview - Welcome Page */}
                     {previewDevice === 'mobile' && (
-                      <div className="flex flex-col items-center">
-                        <div className="mb-4 text-center">
-                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                            iPhone X / 11 / 12 / 13
-                          </span>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="flex flex-col items-center">
+                          <div className="mb-4 text-center">
+                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                              Welcome Page
+                            </span>
+                          </div>
+                          <WelcomePagePreview />
+                          <div className="mt-6">
+                            <p className="text-sm text-gray-500 text-center">
+                              <Info className="w-4 h-4 inline mr-1" />
+                              Initial screen customers will see
+                            </p>
+                          </div>
                         </div>
-                        <PhonePreview />
-                        <div className="mt-6 flex justify-center">
-                          <button
-                            onClick={() => navigate('/menu')}
-                            className="px-4 py-2 text-sm font-medium text-white rounded-md transition-colors flex items-center"
-                            style={{ backgroundColor: colors.primary }}
-                          >
-                            <Eye className="w-4 h-4 mr-2" />
-                            View Full Menu
-                          </button>
+                        <div className="flex flex-col items-center">
+                          <div className="mb-4 text-center">
+                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                              Menu Page
+                            </span>
+                          </div>
+                          <PhonePreview />
+                          <div className="mt-6">
+                            <p className="text-sm text-gray-500 text-center">
+                              <Info className="w-4 h-4 inline mr-1" />
+                              Main menu interface
+                            </p>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -2246,12 +2956,12 @@ export default function Dashboard() {
                         </div>
                         <div className="mt-6 flex justify-center">
                           <button
-                            onClick={() => navigate('/menu')}
+                            onClick={() => navigate('/menu/1')}
                             className="px-4 py-2 text-sm font-medium text-white rounded-md transition-colors flex items-center"
                             style={{ backgroundColor: colors.primary }}
                           >
                             <Eye className="w-4 h-4 mr-2" />
-                            View Full Menu
+                            View Live Menu
                           </button>
                         </div>
                       </div>
@@ -2372,12 +3082,12 @@ export default function Dashboard() {
                         </div>
                         <div className="mt-6 flex justify-center">
                           <button
-                            onClick={() => navigate('/menu')}
+                            onClick={() => navigate('/menu/1')}
                             className="px-4 py-2 text-sm font-medium text-white rounded-md transition-colors flex items-center"
                             style={{ backgroundColor: colors.primary }}
                           >
                             <Eye className="w-4 h-4 mr-2" />
-                            View Full Menu
+                            View Live Menu
                           </button>
                         </div>
                       </div>
@@ -2451,7 +3161,7 @@ export default function Dashboard() {
                         </h3>
                         <div className="space-y-3">
                           <button
-                            onClick={() => navigate('/menu')}
+                            onClick={() => navigate('/menu/1')}
                             className="w-full flex items-center justify-between p-4 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-gray-200 shadow-sm"
                           >
                             <div className="text-left">
@@ -2464,7 +3174,9 @@ export default function Dashboard() {
                           </button>
                           
                           <button
-                            onClick={() => {}}
+                            onClick={() => {
+                              showNotification('Coming soon: QR code generator');
+                            }}
                             className="w-full flex items-center justify-between p-4 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-gray-200 shadow-sm"
                           >
                             <div className="text-left">
